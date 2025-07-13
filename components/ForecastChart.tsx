@@ -73,11 +73,6 @@ export function ForecastChart({ data, threshold = 50 }: ForecastChartProps) {
             stroke="#f59e0b" 
             strokeDasharray="5 5" 
             strokeWidth={2}
-            label={{ 
-              value: `Alert Threshold (${threshold} km/h)`, 
-              position: 'topRight',
-              style: { fill: '#f59e0b', fontSize: '12px' }
-            }}
           />
           
           {/* Wind gust area */}
@@ -112,6 +107,14 @@ export function ForecastChart({ data, threshold = 50 }: ForecastChartProps) {
           />
         </LineChart>
       </ResponsiveContainer>
+      
+      {/* Threshold indicator */}
+      <div className="flex justify-center mb-2">
+        <div className="flex items-center text-sm text-yellow-500">
+          <div className="w-6 h-0.5 bg-yellow-500 border-dashed border-t mr-2" style={{borderTopStyle: 'dashed'}}></div>
+          <span>Alert Threshold: {threshold} km/h</span>
+        </div>
+      </div>
       
       {/* Legend */}
       <div className="flex justify-center items-center mt-4 space-x-6 text-sm">
