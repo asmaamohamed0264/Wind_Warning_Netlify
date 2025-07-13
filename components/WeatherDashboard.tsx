@@ -1,0 +1,162 @@
+'use client';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { WeatherData, ForecastData } from '@/types/weather';
+import { AlertLevel } from '@/types/alerts';
+import { Wind, Navigation, Thermometer, Droplets, Eye, Gauge } from 'lucide-react';
+import { ForecastChart } from './ForecastChart';
+
+interface WeatherDashboardProps {
+  data: WeatherData;
+  alertLevel: AlertLevel;
+  forecast: ForecastData[];
+  threshold?: number;
+}
+
+export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }: WeatherDashboardProps) {
+  const getAlertColor = (level: AlertLevel) => {
+    switch (level) {
+      case 'danger': return 'border-red-500 bg-red-500/10';
+      case 'warning': return 'border-yellow-500 bg-yellow-500/10';
+      case 'caution': return 'border-orange-500 bg-orange-500/10';
+      default: return 'border-green-500 bg-green-500/10';
+    }
+  };
+
+  const getWindDirection = (degrees: number) => {
+    const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+    return directions[Math.round(degrees / 22.5) % 16];
+  };
+
+  const getWindSpeedColor = (speed: number) => {
+    if (speed >= threshold * 1.5) return 'text-red-400';
+    if (speed >= threshold * 1.2) return 'text-orange-400';
+    if (speed >= threshold) return 'text-yellow-400';
+    return 'text-blue-400';
+  };
+
+  const getWindDescription = (speed: number) => {
+    if (speed < 20) return 'Light breeze';
+    if (speed < 40) return 'Moderate wind';
+    if (speed < 60) return 'Strong wind';
+    if (speed < 80) return 'Very strong wind';
+    return 'Dangerous wind';
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Current Conditions */}
+      <Card className={`border-2 transition-all duration-300 bg-gray-800/50 backdrop-blur-sm ${getAlertColor(alertLevel)}`}>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between text-xl">
+            <div className="flex items-center">
+              <Wind className="mr-2 h-6 w-6 text-blue-400" />
+              Current Wind Conditions
+            </div>
+            <div className="text-sm font-normal text-gray-400">
+              📍 Bucharest • {new Date(data.timestamp).toLocaleTimeString('ro-RO', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              })}
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            {/* Wind Speed */}
+            <div className="text-center">
+              <div className={`text-4xl font-bold mb-1 ${getWindSpeedColor(data.windSpeed)}`}>
+                {Math.round(data.windSpeed)}
+              </div>
+              <div className="text-sm text-gray-400 mb-1">Wind Speed (km/h)</div>
+              <div className="text-xs text-gray-500">{getWindDescription(data.windSpeed)}</div>
+            </div>
+
+            {/* Wind Gusts */}
+            <div className="text-center">
+              <div className={`text-4xl font-bold mb-1 ${getWindSpeedColor(data.windGust)}`}>
+                {Math.round(data.windGust)}
+              </div>
+              <div className="text-sm text-gray-400 mb-1">Gusts (km/h)</div>
+              <div className="text-xs text-gray-500">
+                {data.windGust > data.windSpeed * 1.2 ? 'Gusty conditions' : 'Steady wind'}
+              </div>
+            </div>
+
+            {/* Wind Direction */}
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <Navigation 
+                  className="h-10 w-10 text-green-400 transition-transform duration-500" 
+                  style={{ transform: `rotate(${data.windDirection}deg)` }}
+                />
+              </div>
+              <div className="text-2xl font-semibold text-green-400 mb-1">
+                {getWindDirection(data.windDirection)}
+              </div>
+              <div className="text-sm text-gray-400">{data.windDirection}°</div>
+            </div>
+          </div>
+
+          {/* Weather Description */}
+          <div className="text-center p-4 bg-gray-700/30 rounded-lg">
+            <p className="text-gray-300 capitalize">{data.description}</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Additional Weather Info */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 hover:bg-gray-800/70 transition-colors">
+          <CardContent className="p-4 text-center">
+            <Thermometer className="h-6 w-6 text-orange-400 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-white">{Math.round(data.temperature)}°C</div>
+            <div className="text-sm text-gray-400">Temperature</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 hover:bg-gray-800/70 transition-colors">
+          <CardContent className="p-4 text-center">
+            <Droplets className="h-6 w-6 text-blue-400 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-white">{data.humidity}%</div>
+            <div className="text-sm text-gray-400">Humidity</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 hover:bg-gray-800/70 transition-colors">
+          <CardContent className="p-4 text-center">
+            <Gauge className="h-6 w-6 text-purple-400 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-white">{Math.round(data.pressure)}</div>
+            <div className="text-sm text-gray-400">Pressure (hPa)</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 hover:bg-gray-800/70 transition-colors">
+          <CardContent className="p-4 text-center">
+            <Eye className="h-6 w-6 text-gray-400 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-white">{Math.round(data.visibility / 1000)}</div>
+            <div className="text-sm text-gray-400">Visibility (km)</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 8-Hour Forecast Chart */}
+      <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center">
+              <Wind className="mr-2 h-5 w-5 text-blue-400" />
+              8-Hour Wind Forecast
+            </div>
+            <div className="text-sm font-normal text-gray-400">
+              Next {forecast.length} hours • Updates every 3 hours
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ForecastChart data={forecast} threshold={threshold} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
