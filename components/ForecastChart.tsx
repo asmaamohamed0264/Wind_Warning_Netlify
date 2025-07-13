@@ -1,7 +1,7 @@
 'use client';
 
 import { ForecastData } from '@/types/weather';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine, Area, AreaChart } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine } from 'recharts';
 
 interface ForecastChartProps {
   data: ForecastData[];
@@ -73,16 +73,6 @@ export function ForecastChart({ data, threshold = 50 }: ForecastChartProps) {
             stroke="#f59e0b" 
             strokeDasharray="5 5" 
             strokeWidth={2}
-          />
-          
-          {/* Wind gust area */}
-          <Area
-            type="monotone"
-            dataKey="windGust"
-            stroke="#60a5fa"
-            fill="#60a5fa"
-            fillOpacity={0.1}
-            strokeWidth={0}
           />
           
           {/* Wind speed line */}
