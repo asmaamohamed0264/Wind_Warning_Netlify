@@ -133,7 +133,7 @@ export default function Home() {
       });
 
       // Trigger notifications if this is a new alert
-      if (level !== 'normal') {
+      if (level === 'caution' || level === 'warning' || level === 'danger') {
         triggerNotifications(level, maxWind, alertTime);
       }
     } else {
