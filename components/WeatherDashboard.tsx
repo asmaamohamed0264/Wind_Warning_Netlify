@@ -5,6 +5,7 @@ import { WeatherData, ForecastData } from '@/types/weather';
 import { AlertLevel } from '@/types/alerts';
 import { Wind, Navigation, Thermometer, Droplets, Eye, Gauge } from 'lucide-react';
 import { ForecastChart } from './ForecastChart';
+import { translateWeatherDescription, capitalizeFirst } from '@/lib/weatherTranslations';
 
 interface WeatherDashboardProps {
   data: WeatherData;
@@ -100,7 +101,7 @@ export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }:
 
           {/* Weather Description */}
           <div className="text-center p-4 bg-gray-700/30 rounded-lg">
-            <p className="text-gray-300 capitalize">Aleea Someșul Cald - {data.description}</p>
+            <p className="text-gray-300">Aleea Someșul Cald - {capitalizeFirst(translateWeatherDescription(data.description))}</p>
           </div>
         </CardContent>
       </Card>
