@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Bell, Smartphone, Check, X, AlertCircle } from 'lucide-react';
+import { Bell, Smartphone, Mail, Check, X, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function NotificationSettings() {
@@ -17,6 +17,9 @@ export function NotificationSettings() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [isUnsubscribing, setIsUnsubscribing] = useState(false);
+  const [emailAddress, setEmailAddress] = useState('');
+  const [isEmailSubscribed, setIsEmailSubscribed] = useState(false);
+  const [isEmailLoading, setIsEmailLoading] = useState(false);
 
   useEffect(() => {
     // Check if push notifications are supported
@@ -33,6 +36,14 @@ export function NotificationSettings() {
     if (savedPhone) {
       setPhoneNumber(savedPhone);
       setSmsEnabled(savedSmsEnabled);
+    }
+
+    // Load saved Email preferences
+    const savedEmail = localStorage.getItem('email_address');
+    const savedEmailEnabled = localStorage.getItem('email_enabled') === 'true';
+    if (savedEmail) {
+      setEmailAddress(savedEmail);
+      setIsEmailSubscribed(savedEmailEnabled);
     }
   }, []);
 
@@ -143,6 +154,40 @@ export function NotificationSettings() {
     }
   };
 
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleEmailSubscribe = async () => {
+    if (!emailAddress.trim() || !validateEmail(emailAddress)) {
+      toast.error('Vă rugăm introduceți o adresă de email validă.');
+      return;
+    }
+    
+    setIsEmailLoading(true);
+    
+    // Simulare abonare (în aplicația reală s-ar face un apel API)
+    setTimeout(() => {
+      setIsEmailSubscribed(true);
+      localStorage.setItem('email_address', emailAddress.trim());
+      localStorage.setItem('email_enabled', 'true');
+      toast.success(`Adresa ${emailAddress} a fost abonată cu succes la alertele email!`);
+      setIsEmailLoading(false);
+    }, 800);
+  };
+
+  const handleEmailUnsubscribe = () => {
+    setIsEmailLoading(true);
+    
+    setTimeout(() => {
+      setIsEmailSubscribed(false);
+      localStorage.setItem('email_enabled', 'false');
+      toast.success(`Adresa ${emailAddress} a fost dezabonată de la alertele email.`);
+      setIsEmailLoading(false);
+    }, 500);
+  };
+
   return (
     <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700">
       <CardHeader>
@@ -245,12 +290,68 @@ export function NotificationSettings() {
           </div>
         </div>
 
+        {/* Email Notifications */}
+        <div className="space-y-4 border-t border-gray-700 pt-4">
+          <div className="space-y-1">
+            <Label className="text-sm font-medium text-white flex items-center">
+              <Mail className="h-4 w-4 mr-2 text-green-400" />
+              Alerte Email
+            </Label>
+            <p className="text-xs text-gray-400">
+              Primește alerte detaliate prin email cu recomandări de siguranță
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="email" className="text-xs text-gray-400">
+                Adresă de Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="nume@exemplu.com"
+                value={emailAddress}
+                onChange={(e) => setEmailAddress(e.target.value)}
+                className="mt-1 bg-gray-700/50 border-gray-600 text-white placeholder-gray-400"
+                disabled={isEmailSubscribed}
+              />
+            </div>
+
+            {!isEmailSubscribed ? (
+              <Button
+                onClick={handleEmailSubscribe}
+                disabled={isEmailLoading || !emailAddress.trim()}
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+              >
+                {isEmailLoading ? 'Se abonează...' : 'Abonează-te la Alerte Email'}
+              </Button>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center text-xs text-green-400 mb-2">
+                  <Check className="h-3 w-3 mr-1" />
+                  Alertele email sunt activate pentru {emailAddress}
+                </div>
+                <Button
+                  onClick={handleEmailUnsubscribe}
+                  disabled={isEmailLoading}
+                  variant="outline"
+                  className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
+                >
+                  {isEmailLoading ? 'Se dezabonează...' : 'Dezabonează-te de la Email'}
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Important Notice */}
         <div className="bg-gray-700/50 rounded-lg p-3 border-l-4 border-blue-400">
           <h4 className="text-sm font-semibold text-white mb-1">Notă Importantă</h4>
           <p className="text-xs text-gray-300 leading-relaxed">
-            Alertele SMS sunt trimise pentru viteze ale vântului care depășesc pragul configurat. 
-            Se pot aplica tarifele standard de mesagerie. Te poți dezabona oricând.
+            Alertele sunt trimise pentru viteze ale vântului care depășesc pragul configurat. 
+            Pentru SMS se pot aplica tarifele standard de mesagerie. Te poți dezabona oricând 
+            din orice tip de notificare.
           </p>
         </div>
       </CardContent>

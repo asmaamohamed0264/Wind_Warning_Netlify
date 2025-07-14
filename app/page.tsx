@@ -156,10 +156,12 @@ export default function Home() {
   };
 
   const triggerNotifications = async (level: AlertLevel, windSpeed: number, time: string) => {
+    const alertMessage = generateAlertMessage(level, windSpeed);
+
     // Browser Push Notification
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('🌪️ Alertă Vânt Grand Arena', {
-        body: generateAlertMessage(level, windSpeed),
+        body: alertMessage,
         icon: '/1000088934-modified.png',
         badge: '/1000088934-modified.png',
         tag: 'wind-alert',
@@ -179,11 +181,29 @@ export default function Home() {
           level,
           windSpeed: Math.round(windSpeed),
           time,
-          message: generateAlertMessage(level, windSpeed)
+          message: alertMessage
         }),
       });
     } catch (error) {
       console.error('Failed to send SMS alerts:', error);
+    }
+
+    // Email Notifications
+    if (localStorage.getItem('email_enabled') === 'true') {
+      try {
+        await fetch('/api/email-alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            level, 
+            windSpeed: Math.round(windSpeed), 
+            message: alertMessage 
+          }),
+        });
+        console.log('Email alerts triggered successfully');
+      } catch (error) {
+        console.error('Failed to send email alerts:', error);
+      }
     }
   };
 
