@@ -54,7 +54,7 @@ export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }:
               Condiții Actuale de Vânt
             </div>
             <div className="text-sm font-normal text-gray-400">
-              📍 Grand Arena • {new Date(data.timestamp).toLocaleTimeString('ro-RO', { 
+              📍 Aleea Someșul Cald • {new Date(data.timestamp).toLocaleTimeString('ro-RO', { 
                 hour: '2-digit', 
                 minute: '2-digit' 
               })}
@@ -100,7 +100,7 @@ export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }:
 
           {/* Weather Description */}
           <div className="text-center p-4 bg-gray-700/30 rounded-lg">
-            <p className="text-gray-300 capitalize">Zona Grand Arena - {data.description}</p>
+            <p className="text-gray-300 capitalize">Aleea Someșul Cald - {data.description}</p>
           </div>
         </CardContent>
       </Card>

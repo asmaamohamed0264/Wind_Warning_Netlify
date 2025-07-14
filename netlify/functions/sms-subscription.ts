@@ -72,7 +72,7 @@ const handler: Handler = async (event, context) => {
         const twilio = require('twilio')(twilioAccountSid, twilioAuthToken);
         
         await twilio.messages.create({
-          body: `🌪️ Bun venit la Monitor Vânt Grand Arena!\n\nEști acum abonat la alertele SMS pentru condiții periculoase de vânt. Vei primi notificări când vânturile depășesc pragul tău.\n\nFii în siguranță!`,
+          body: `🌪️ Bun venit la Monitor Vânt Aleea Someșul Cald!\n\nEști acum abonat la alertele SMS pentru condiții periculoase de vânt. Vei primi notificări când vânturile depășesc pragul tău.\n\nFii în siguranță!`,
           from: process.env.TWILIO_PHONE_NUMBER,
           to: cleanPhone,
         });
@@ -123,7 +123,7 @@ const handler: Handler = async (event, context) => {
           const twilio = require('twilio')(twilioAccountSid, twilioAuthToken);
           
           await twilio.messages.create({
-            body: `Ai fost dezabonat de la alertele SMS Monitor Vânt Grand Arena. Nu vei mai primi notificări despre condițiile de vânt.\n\nTe poți reabona oricând pe site-ul nostru.`,
+            body: `Ai fost dezabonat de la alertele SMS Monitor Vânt Aleea Someșul Cald. Nu vei mai primi notificări despre condițiile de vânt.\n\nTe poți reabona oricând pe site-ul nostru.`,
             from: process.env.TWILIO_PHONE_NUMBER,
             to: cleanPhone,
           });
