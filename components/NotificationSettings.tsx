@@ -80,7 +80,7 @@ export function NotificationSettings() {
     const cleanPhone = phone.replace(/[\s\-\(\)]/g, ''); // Remove spaces, dashes, parentheses
     
     // Romanian formats: +40XXXXXXXXX, 0040XXXXXXXXX, 07XXXXXXXX, 07XX XXX XXX
-    const romanianRegex = /^(\+40|0040|0)[72-79]\d{8}$/;
+    const romanianRegex = /^(\+40|0040|0)[6-79]\d{8}$/;
     
     // International format (more flexible)
     const internationalRegex = /^\+[1-9]\d{8,14}$/;

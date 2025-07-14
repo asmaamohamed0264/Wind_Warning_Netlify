@@ -35,8 +35,8 @@ const handler: Handler = async (event, context) => {
       const cleanPhone = phoneNumber.replace(/\s/g, '');
       const cleanedPhone = phoneNumber.replace(/[\s\-\(\)]/g, ''); // Remove formatting
       
-      // Romanian phone validation (more flexible)
-      const romanianRegex = /^(\+40|0040|0)[72-79]\d{8}$/;
+      // Romanian phone validation - includes all valid prefixes (06x, 07x, 08x, 09x)
+      const romanianRegex = /^(\+40|0040|0)[6-79]\d{8}$/;
       
       // International validation (8-15 digits after country code)
       const internationalRegex = /^\+[1-9]\d{8,14}$/;
