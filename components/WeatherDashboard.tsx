@@ -36,11 +36,11 @@ export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }:
   };
 
   const getWindDescription = (speed: number) => {
-    if (speed < 20) return 'Light breeze';
-    if (speed < 40) return 'Moderate wind';
-    if (speed < 60) return 'Strong wind';
-    if (speed < 80) return 'Very strong wind';
-    return 'Dangerous wind';
+    if (speed < 20) return 'Briză ușoară';
+    if (speed < 40) return 'Vânt moderat';
+    if (speed < 60) return 'Vânt puternic';
+    if (speed < 80) return 'Vânt foarte puternic';
+    return 'Vânt periculos';
   };
 
   return (
@@ -50,11 +50,11 @@ export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }:
         <CardHeader>
           <CardTitle className="flex items-center justify-between text-xl">
             <div className="flex items-center">
-              <Wind className="mr-2 h-6 w-6 text-blue-400" />
-              Current Wind Conditions
+              <img src="/1000088934-modified.png" alt="Monitor Vânt" className="mr-2 h-6 w-6" />
+              Condiții Actuale de Vânt
             </div>
             <div className="text-sm font-normal text-gray-400">
-              📍 Bucharest • {new Date(data.timestamp).toLocaleTimeString('ro-RO', { 
+              📍 Grand Arena • {new Date(data.timestamp).toLocaleTimeString('ro-RO', { 
                 hour: '2-digit', 
                 minute: '2-digit' 
               })}
@@ -68,7 +68,7 @@ export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }:
               <div className={`text-4xl font-bold mb-1 ${getWindSpeedColor(data.windSpeed)}`}>
                 {Math.round(data.windSpeed)}
               </div>
-              <div className="text-sm text-gray-400 mb-1">Wind Speed (km/h)</div>
+              <div className="text-sm text-gray-400 mb-1">Viteza Vântului (km/h)</div>
               <div className="text-xs text-gray-500">{getWindDescription(data.windSpeed)}</div>
             </div>
 
@@ -77,9 +77,9 @@ export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }:
               <div className={`text-4xl font-bold mb-1 ${getWindSpeedColor(data.windGust)}`}>
                 {Math.round(data.windGust)}
               </div>
-              <div className="text-sm text-gray-400 mb-1">Gusts (km/h)</div>
+              <div className="text-sm text-gray-400 mb-1">Rafale (km/h)</div>
               <div className="text-xs text-gray-500">
-                {data.windGust > data.windSpeed * 1.2 ? 'Gusty conditions' : 'Steady wind'}
+                {data.windGust > data.windSpeed * 1.2 ? 'Condiții cu rafale' : 'Vânt constant'}
               </div>
             </div>
 
@@ -100,7 +100,7 @@ export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }:
 
           {/* Weather Description */}
           <div className="text-center p-4 bg-gray-700/30 rounded-lg">
-            <p className="text-gray-300 capitalize">{data.description}</p>
+            <p className="text-gray-300 capitalize">Zona Grand Arena - {data.description}</p>
           </div>
         </CardContent>
       </Card>
@@ -111,7 +111,7 @@ export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }:
           <CardContent className="p-4 text-center">
             <Thermometer className="h-6 w-6 text-orange-400 mx-auto mb-2" />
             <div className="text-2xl font-bold text-white">{Math.round(data.temperature)}°C</div>
-            <div className="text-sm text-gray-400">Temperature</div>
+            <div className="text-sm text-gray-400">Temperatură</div>
           </CardContent>
         </Card>
 
@@ -119,7 +119,7 @@ export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }:
           <CardContent className="p-4 text-center">
             <Droplets className="h-6 w-6 text-blue-400 mx-auto mb-2" />
             <div className="text-2xl font-bold text-white">{data.humidity}%</div>
-            <div className="text-sm text-gray-400">Humidity</div>
+            <div className="text-sm text-gray-400">Umiditate</div>
           </CardContent>
         </Card>
 
@@ -127,7 +127,7 @@ export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }:
           <CardContent className="p-4 text-center">
             <Gauge className="h-6 w-6 text-purple-400 mx-auto mb-2" />
             <div className="text-2xl font-bold text-white">{Math.round(data.pressure)}</div>
-            <div className="text-sm text-gray-400">Pressure (hPa)</div>
+            <div className="text-sm text-gray-400">Presiune (hPa)</div>
           </CardContent>
         </Card>
 
@@ -135,7 +135,7 @@ export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }:
           <CardContent className="p-4 text-center">
             <Eye className="h-6 w-6 text-gray-400 mx-auto mb-2" />
             <div className="text-2xl font-bold text-white">{Math.round(data.visibility / 1000)}</div>
-            <div className="text-sm text-gray-400">Visibility (km)</div>
+            <div className="text-sm text-gray-400">Vizibilitate (km)</div>
           </CardContent>
         </Card>
       </div>
@@ -145,11 +145,11 @@ export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }:
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center">
-              <Wind className="mr-2 h-5 w-5 text-blue-400" />
-              8-Hour Wind Forecast
+              <img src="/1000088934-modified.png" alt="Prognoză" className="mr-2 h-5 w-5" />
+              Prognoză Vânt 8 Ore
             </div>
             <div className="text-sm font-normal text-gray-400">
-              Next {forecast.length} hours • Updates every 3 hours
+              Următoarele {forecast.length} ore • Actualizări la fiecare 3 ore
             </div>
           </CardTitle>
         </CardHeader>

@@ -8,7 +8,7 @@ import { NotificationSettings } from '@/components/NotificationSettings';
 import { WeatherData, ForecastData } from '@/types/weather';
 import { AlertLevel } from '@/types/alerts';
 import { Toaster } from '@/components/ui/sonner';
-import { Wind, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { Wind, RefreshCw, Wifi, WifiOff, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Home() {
@@ -40,13 +40,13 @@ export default function Home() {
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      toast.success('Connection restored');
+      toast.success('Conexiunea a fost restabilită');
       fetchWeatherData();
     };
     
     const handleOffline = () => {
       setIsOnline(false);
-      toast.error('Connection lost');
+      toast.error('Conexiune pierdută');
     };
 
     window.addEventListener('online', handleOnline);
@@ -90,7 +90,7 @@ export default function Home() {
       setLoading(false);
       
       if (showRefreshToast) {
-        toast.success('Weather data updated');
+        toast.success('Datele meteo au fost actualizate');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
@@ -98,7 +98,7 @@ export default function Home() {
       setLoading(false);
       
       if (showRefreshToast) {
-        toast.error('Failed to update weather data');
+        toast.error('Actualizarea datelor meteo a eșuat');
       }
     } finally {
       setRefreshing(false);
@@ -145,11 +145,11 @@ export default function Home() {
   const generateAlertMessage = (level: AlertLevel, windSpeed: number): string => {
     switch (level) {
       case 'danger':
-        return `MAJOR WIND DANGER! Winds up to ${Math.round(windSpeed)} km/h expected. Stay indoors and secure all loose objects immediately.`;
+        return `PERICOL MAJOR DE VÂNT! Se așteaptă vânturi de până la ${Math.round(windSpeed)} km/h. Rămâi în interior și fixează imediat toate obiectele mobile.`;
       case 'warning':
-        return `Strong winds forecasted! Winds up to ${Math.round(windSpeed)} km/h. Exercise extreme caution when outdoors.`;
+        return `Vânturi puternice prognozate! Vânturi de până la ${Math.round(windSpeed)} km/h. Exercită precauție extremă când ieși afară.`;
       case 'caution':
-        return `Moderate winds expected. Winds up to ${Math.round(windSpeed)} km/h. Be aware of changing conditions.`;
+        return `Se așteaptă vânturi moderate. Vânturi de până la ${Math.round(windSpeed)} km/h. Fii atent la schimbările de condiții.`;
       default:
         return '';
     }
@@ -158,10 +158,10 @@ export default function Home() {
   const triggerNotifications = async (level: AlertLevel, windSpeed: number, time: string) => {
     // Browser Push Notification
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('🌪️ Wind Warning Alert', {
+      new Notification('🌪️ Alertă Vânt Grand Arena', {
         body: generateAlertMessage(level, windSpeed),
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
+        icon: '/1000088934-modified.png',
+        badge: '/1000088934-modified.png',
         tag: 'wind-alert',
         requireInteraction: level === 'danger',
         silent: false
@@ -195,9 +195,9 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <Wind className="h-12 w-12 text-blue-400 animate-spin mx-auto mb-4" />
-          <p className="text-gray-300 text-lg">Loading weather data...</p>
-          <p className="text-gray-500 text-sm mt-2">Connecting to weather services</p>
+          <img src="/1000088934-modified.png" alt="Monitor Vânt" className="h-16 w-16 mx-auto mb-4 animate-pulse" />
+          <p className="text-gray-300 text-lg">Se încarcă datele meteo...</p>
+          <p className="text-gray-500 text-sm mt-2">Conectare la serviciile meteorologice</p>
         </div>
       </div>
     );
@@ -208,7 +208,7 @@ export default function Home() {
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center max-w-md mx-4">
           <div className="text-red-400 text-6xl mb-4">⚠️</div>
-          <h2 className="text-xl font-semibold text-white mb-2">Weather Service Unavailable</h2>
+          <h2 className="text-xl font-semibold text-white mb-2">Serviciul Meteo Indisponibil</h2>
           <p className="text-gray-400 mb-4">{error}</p>
           <div className="flex gap-3 justify-center">
             <button
@@ -217,7 +217,7 @@ export default function Home() {
               className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-2 rounded-lg transition-colors flex items-center"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? 'Retrying...' : 'Try Again'}
+              {refreshing ? 'Se reîncearcă...' : 'Încearcă din nou'}
             </button>
           </div>
         </div>
@@ -231,13 +231,17 @@ export default function Home() {
         {/* Header */}
         <header className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
-            <Wind className="h-10 w-10 text-blue-400 mr-3" />
+            <img src="/1000088934-modified.png" alt="Monitor Vânt Grand Arena" className="h-12 w-12 mr-3" />
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              Wind Warning Bucharest
+              Monitor Vânt Grand Arena
             </h1>
           </div>
+          <div className="flex items-center justify-center mb-2 text-gray-400">
+            <MapPin className="h-4 w-4 mr-1" />
+            <span className="text-sm">Aleea Someșul Cald, zona Grand Arena, București</span>
+          </div>
           <p className="text-gray-400 text-lg mb-4">
-            Stay ahead of dangerous wind conditions with real-time monitoring and proactive alerts
+            Fii cu un pas înaintea condițiilor meteorologice periculoase cu monitorizare în timp real și alerte proactive
           </p>
           
           {/* Status Bar */}
@@ -249,13 +253,13 @@ export default function Home() {
                 <WifiOff className="h-4 w-4 text-red-400 mr-1" />
               )}
               <span className={isOnline ? 'text-green-400' : 'text-red-400'}>
-                {isOnline ? 'Online' : 'Offline'}
+                {isOnline ? 'Conectat' : 'Deconectat'}
               </span>
             </div>
             
             {lastUpdate && (
               <div className="text-gray-400">
-                Last update: {lastUpdate.toLocaleTimeString('ro-RO', { 
+                Ultima actualizare: {lastUpdate.toLocaleTimeString('ro-RO', { 
                   hour: '2-digit', 
                   minute: '2-digit' 
                 })}
@@ -268,7 +272,7 @@ export default function Home() {
               className="flex items-center text-blue-400 hover:text-blue-300 disabled:opacity-50 transition-colors"
             >
               <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? 'Updating...' : 'Refresh'}
+              {refreshing ? 'Se actualizează...' : 'Actualizează'}
             </button>
           </div>
         </header>
@@ -307,13 +311,16 @@ export default function Home() {
         {/* Footer */}
         <footer className="text-center text-gray-500 text-sm border-t border-gray-800 pt-6">
           <p className="mb-2">
-            🌍 Data provided by OpenWeatherMap • Updates every 5 minutes
+            🌍 Date furnizate de OpenWeatherMap • Actualizări la fiecare 5 minute
           </p>
           <p className="mb-2">
-            🏛️ Built for safety and peace of mind in Bucharest, Romania
+            🏛️ Construit pentru siguranța și liniștea sufletească în zona Grand Arena, București
+          </p>
+          <p className="mb-2 text-blue-400 font-medium">
+            ⚡ Powered by Bogdan pentru Loredana
           </p>
           <p className="text-xs text-gray-600">
-            Emergency: 112 • For severe weather warnings visit ANM (Administrația Națională de Meteorologie)
+            Urgențe: 112 • Pentru avertizări meteorologice severe vizitează ANM (Administrația Națională de Meteorologie)
           </p>
         </footer>
       </div>

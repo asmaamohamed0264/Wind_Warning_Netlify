@@ -72,7 +72,7 @@ const handler: Handler = async (event, context) => {
         const twilio = require('twilio')(twilioAccountSid, twilioAuthToken);
         
         await twilio.messages.create({
-          body: `🌪️ Welcome to Wind Warning Bucharest!\n\nYou are now subscribed to SMS alerts for dangerous wind conditions. You'll receive notifications when winds exceed your threshold.\n\nStay safe!`,
+          body: `🌪️ Bun venit la Monitor Vânt Grand Arena!\n\nEști acum abonat la alertele SMS pentru condiții periculoase de vânt. Vei primi notificări când vânturile depășesc pragul tău.\n\nFii în siguranță!`,
           from: process.env.TWILIO_PHONE_NUMBER,
           to: cleanPhone,
         });
@@ -123,7 +123,7 @@ const handler: Handler = async (event, context) => {
           const twilio = require('twilio')(twilioAccountSid, twilioAuthToken);
           
           await twilio.messages.create({
-            body: `You have been unsubscribed from Wind Warning Bucharest SMS alerts. You will no longer receive wind condition notifications.\n\nYou can resubscribe anytime at windwarning.ro`,
+            body: `Ai fost dezabonat de la alertele SMS Monitor Vânt Grand Arena. Nu vei mai primi notificări despre condițiile de vânt.\n\nTe poți reabona oricând pe site-ul nostru.`,
             from: process.env.TWILIO_PHONE_NUMBER,
             to: cleanPhone,
           });
@@ -152,7 +152,7 @@ const handler: Handler = async (event, context) => {
         statusCode: 200,
         headers,
         body: JSON.stringify({
-          message: 'SMS subscription service is active',
+          message: 'Serviciul de abonare SMS este activ',
           timestamp: new Date().toISOString(),
         }),
       };

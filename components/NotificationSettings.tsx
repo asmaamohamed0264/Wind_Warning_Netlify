@@ -147,8 +147,8 @@ export function NotificationSettings() {
     <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700">
       <CardHeader>
         <CardTitle className="flex items-center text-lg">
-          <Bell className="mr-2 h-5 w-5 text-blue-400" />
-          Notification Settings
+          <img src="/1000088934-modified.png" alt="Notificări" className="mr-2 h-5 w-5" />
+          Setări Notificări
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -156,9 +156,9 @@ export function NotificationSettings() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <Label className="text-sm font-medium text-white">Browser Push Notifications</Label>
+              <Label className="text-sm font-medium text-white">Notificări Push Browser</Label>
               <p className="text-xs text-gray-400">
-                Get instant alerts in your browser when dangerous winds are forecasted
+                Primește alerte instantanee în browser când sunt prognozate vânturi periculoase
               </p>
             </div>
             <Switch
@@ -171,21 +171,21 @@ export function NotificationSettings() {
           {!pushSupported && (
             <div className="flex items-center text-xs text-yellow-400">
               <AlertCircle className="h-3 w-3 mr-1" />
-              Push notifications not supported in this browser
+              Notificările push nu sunt suportate în acest browser
             </div>
           )}
           
           {pushSupported && pushPermission === 'denied' && (
             <div className="flex items-center text-xs text-red-400">
               <X className="h-3 w-3 mr-1" />
-              Push notifications blocked. Please enable in browser settings.
+              Notificările push sunt blocate. Te rog activează-le în setările browserului.
             </div>
           )}
           
           {pushEnabled && (
             <div className="flex items-center text-xs text-green-400">
               <Check className="h-3 w-3 mr-1" />
-              Push notifications enabled
+              Notificările push sunt activate
             </div>
           )}
         </div>
@@ -194,18 +194,18 @@ export function NotificationSettings() {
         <div className="space-y-4 border-t border-gray-700 pt-4">
           <div className="space-y-1">
             <Label className="text-sm font-medium text-white flex items-center">
-              <Smartphone className="h-4 w-4 mr-2 text-blue-400" />
-              SMS Alerts
+              <img src="/1000088934-modified.png" alt="SMS" className="h-4 w-4 mr-2" />
+              Alerte SMS
             </Label>
             <p className="text-xs text-gray-400">
-              Receive text message alerts even when you're not online
+              Primește alerte prin mesaje text chiar și când nu ești online
             </p>
           </div>
 
           <div className="space-y-3">
             <div>
               <Label htmlFor="phone" className="text-xs text-gray-400">
-                Phone Number
+                Număr de Telefon
               </Label>
               <Input
                 id="phone"
@@ -224,13 +224,13 @@ export function NotificationSettings() {
                 disabled={isSubscribing || !phoneNumber.trim()}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white"
               >
-                {isSubscribing ? 'Subscribing...' : 'Subscribe to SMS Alerts'}
+                {isSubscribing ? 'Se abonează...' : 'Abonează-te la Alerte SMS'}
               </Button>
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center text-xs text-green-400 mb-2">
                   <Check className="h-3 w-3 mr-1" />
-                  SMS alerts enabled for {phoneNumber}
+                  Alertele SMS sunt activate pentru {phoneNumber}
                 </div>
                 <Button
                   onClick={handleSmsUnsubscribe}
@@ -238,7 +238,7 @@ export function NotificationSettings() {
                   variant="outline"
                   className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
                 >
-                  {isUnsubscribing ? 'Unsubscribing...' : 'Unsubscribe from SMS'}
+                  {isUnsubscribing ? 'Se dezabonează...' : 'Dezabonează-te de la SMS'}
                 </Button>
               </div>
             )}
@@ -247,10 +247,10 @@ export function NotificationSettings() {
 
         {/* Important Notice */}
         <div className="bg-gray-700/50 rounded-lg p-3 border-l-4 border-blue-400">
-          <h4 className="text-sm font-semibold text-white mb-1">Important Notice</h4>
+          <h4 className="text-sm font-semibold text-white mb-1">Notă Importantă</h4>
           <p className="text-xs text-gray-300 leading-relaxed">
-            SMS alerts are sent for wind speeds exceeding your configured threshold. 
-            Standard messaging rates may apply. You can unsubscribe at any time.
+            Alertele SMS sunt trimise pentru viteze ale vântului care depășesc pragul configurat. 
+            Se pot aplica tarifele standard de mesagerie. Te poți dezabona oricând.
           </p>
         </div>
       </CardContent>

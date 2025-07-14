@@ -59,7 +59,7 @@ export function ForecastChart({ data, threshold = 50 }: ForecastChartProps) {
             fontSize={12}
             tickLine={false}
             label={{ 
-              value: 'Wind Speed (km/h)', 
+              value: 'Viteza Vântului (km/h)', 
               angle: -90, 
               position: 'insideLeft',
               style: { textAnchor: 'middle', fill: '#9ca3af' }
@@ -102,7 +102,7 @@ export function ForecastChart({ data, threshold = 50 }: ForecastChartProps) {
       <div className="flex justify-center mb-2">
         <div className="flex items-center text-sm text-yellow-500">
           <div className="w-6 h-0.5 bg-yellow-500 border-dashed border-t mr-2" style={{borderTopStyle: 'dashed'}}></div>
-          <span>Alert Threshold: {threshold} km/h</span>
+          <span>Prag de Alertă: {threshold} km/h</span>
         </div>
       </div>
       
@@ -110,15 +110,15 @@ export function ForecastChart({ data, threshold = 50 }: ForecastChartProps) {
       <div className="flex justify-center items-center mt-4 space-x-6 text-sm">
         <div className="flex items-center">
           <div className="w-4 h-0.5 bg-blue-500 mr-2"></div>
-          <span className="text-gray-300">Wind Speed</span>
+          <span className="text-gray-300">Viteza Vântului</span>
         </div>
         <div className="flex items-center">
           <div className="w-4 h-0.5 bg-blue-400 border-dashed border-t mr-2" style={{borderTopStyle: 'dashed'}}></div>
-          <span className="text-gray-300">Wind Gusts</span>
+          <span className="text-gray-300">Rafale de Vânt</span>
         </div>
         <div className="flex items-center">
           <div className="w-4 h-0.5 bg-yellow-500 border-dashed border-t mr-2" style={{borderTopStyle: 'dashed'}}></div>
-          <span className="text-gray-300">Alert Threshold</span>
+          <span className="text-gray-300">Prag de Alertă</span>
         </div>
       </div>
       
@@ -137,7 +137,7 @@ export function ForecastChart({ data, threshold = 50 }: ForecastChartProps) {
               {point.maxWind} km/h
             </div>
             <div className="text-gray-400">
-              {point.maxWind >= threshold ? 'Alert' : 'Normal'}
+              {point.maxWind >= threshold ? 'Alertă' : 'Normal'}
             </div>
           </div>
         ))}

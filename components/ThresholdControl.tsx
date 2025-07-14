@@ -19,10 +19,10 @@ export function ThresholdControl({ value, onChange }: ThresholdControlProps) {
   };
 
   const getThresholdDescription = (threshold: number) => {
-    if (threshold <= 30) return 'Very sensitive - alerts for light winds';
-    if (threshold <= 50) return 'Moderate - balanced alerting';
-    if (threshold <= 70) return 'Conservative - only strong winds';
-    return 'Minimal - only extreme winds';
+    if (threshold <= 30) return 'Foarte sensibil - alerte pentru vânturi ușoare';
+    if (threshold <= 50) return 'Moderat - alertare echilibrată';
+    if (threshold <= 70) return 'Conservator - doar vânturi puternice';
+    return 'Minimal - doar vânturi extreme';
   };
 
   const getThresholdColor = (threshold: number) => {
@@ -36,8 +36,8 @@ export function ThresholdControl({ value, onChange }: ThresholdControlProps) {
     <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700">
       <CardHeader>
         <CardTitle className="flex items-center text-lg">
-          <Settings className="mr-2 h-5 w-5 text-blue-400" />
-          Alert Threshold
+          <img src="/1000088934-modified.png" alt="Setări" className="mr-2 h-5 w-5" />
+          Prag de Alertă
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -66,19 +66,19 @@ export function ThresholdControl({ value, onChange }: ThresholdControlProps) {
           
           <div className="flex justify-between text-xs text-gray-500">
             <span>20 km/h</span>
-            <span>Gentle</span>
-            <span>Moderate</span>
-            <span>Strong</span>
+            <span>Ușor</span>
+            <span>Moderat</span>
+            <span>Puternic</span>
             <span>100 km/h</span>
           </div>
         </div>
 
         <div className="bg-gray-700/50 rounded-lg p-4">
-          <h4 className="text-sm font-semibold text-white mb-2">How it works:</h4>
+          <h4 className="text-sm font-semibold text-white mb-2">Cum funcționează:</h4>
           <p className="text-xs text-gray-400 leading-relaxed">
-            You'll receive alerts when forecasted wind speeds (including gusts) 
-            exceed your selected threshold within the next 8 hours. Lower values 
-            mean more frequent alerts but better preparation time.
+            Vei primi alerte când vitezele vântului prognozate (inclusiv rafalele) 
+            depășesc pragul selectat în următoarele 8 ore. Valorile mai mici 
+            înseamnă alerte mai frecvente, dar timp mai bun de pregătire.
           </p>
         </div>
       </CardContent>

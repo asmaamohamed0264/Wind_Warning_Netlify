@@ -59,10 +59,10 @@ export function AlertPanel({ alert }: AlertPanelProps) {
 
   const getAlertTitle = (level: AlertLevel) => {
     switch (level) {
-      case 'danger': return '🚨 MAJOR WIND DANGER';
-      case 'warning': return '⚠️ STRONG WIND WARNING';
-      case 'caution': return '💨 MODERATE WIND CAUTION';
-      default: return '✅ CONDITIONS NORMAL';
+      case 'danger': return '🚨 PERICOL MAJOR DE VÂNT';
+      case 'warning': return '⚠️ AVERTIZARE VÂNT PUTERNIC';
+      case 'caution': return '💨 ATENȚIE VÂNT MODERAT';
+      default: return '✅ CONDIȚII NORMALE';
     }
   };
 
@@ -70,23 +70,23 @@ export function AlertPanel({ alert }: AlertPanelProps) {
     switch (level) {
       case 'danger':
         return [
-          'Stay indoors and avoid all outdoor activities',
-          'Secure or remove all loose outdoor objects',
-          'Avoid driving, especially high-profile vehicles',
-          'Stay away from windows and trees'
+          'Rămâi în interior și evită toate activitățile în aer liber',
+          'Fixează sau îndepărtează toate obiectele mobile din exterior',
+          'Evită conducerea, în special a vehiculelor înalte',
+          'Stai departe de ferestre și copaci'
         ];
       case 'warning':
         return [
-          'Exercise extreme caution when outdoors',
-          'Secure loose objects in your yard',
-          'Avoid walking near trees or tall structures',
-          'Drive carefully and be aware of crosswinds'
+          'Exercită precauție extremă când ieși afară',
+          'Fixează obiectele mobile din curte',
+          'Evită mersul pe jos lângă copaci sau structuri înalte',
+          'Conduce cu atenție și fii conștient de vânturile laterale'
         ];
       case 'caution':
         return [
-          'Be aware of changing wind conditions',
-          'Secure lightweight outdoor items',
-          'Exercise normal caution when outdoors'
+          'Fii atent la schimbările condițiilor de vânt',
+          'Fixează obiectele ușoare din exterior',
+          'Exercită precauție normală când ieși afară'
         ];
       default:
         return [];
@@ -117,7 +117,7 @@ export function AlertPanel({ alert }: AlertPanelProps) {
               <div className={`text-xl font-bold ${styles.text}`}>
                 {alert.maxWindSpeed} km/h
               </div>
-              <div className="text-sm text-gray-400">Maximum Wind Speed</div>
+              <div className="text-sm text-gray-400">Viteza Maximă a Vântului</div>
             </div>
           </div>
 
@@ -128,7 +128,7 @@ export function AlertPanel({ alert }: AlertPanelProps) {
                 {timeUntil > 0 ? `${timeUntil}h` : 'Now'}
               </div>
               <div className="text-sm text-gray-400">
-                {timeUntil > 0 ? 'Time Until Peak' : 'Currently Active'}
+                {timeUntil > 0 ? 'Timp până la vârf' : 'Activ în prezent'}
               </div>
             </div>
           </div>
@@ -139,7 +139,7 @@ export function AlertPanel({ alert }: AlertPanelProps) {
               <div className={`text-xl font-bold ${styles.text} uppercase`}>
                 {alert.level}
               </div>
-              <div className="text-sm text-gray-400">Alert Level</div>
+              <div className="text-sm text-gray-400">Nivel de Alertă</div>
             </div>
           </div>
         </div>
@@ -148,7 +148,7 @@ export function AlertPanel({ alert }: AlertPanelProps) {
           <div className="border-t border-gray-700 pt-4">
             <h3 className="text-lg font-semibold text-white mb-3 flex items-center">
               <Shield className="h-5 w-5 mr-2 text-blue-400" />
-              Safety Recommendations
+              Recomandări de Siguranță
             </h3>
             <ul className="space-y-2">
               {getSafetyRecommendations(alert.level).map((recommendation, index) => (

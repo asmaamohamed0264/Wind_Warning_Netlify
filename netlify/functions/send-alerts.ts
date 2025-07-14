@@ -61,7 +61,7 @@ const handler: Handler = async (event, context) => {
 
       try {
         const smsMessage = await twilio.messages.create({
-          body: `🌪️ WIND ALERT - ${level.toUpperCase()}\n\n${message}\n\nWind Warning Bucharest`,
+          body: `🌪️ ALERTĂ VÂNT - ${level.toUpperCase()}\n\n${message}\n\nMonitor Vânt Grand Arena`,
           from: twilioPhoneNumber,
           to: cleanPhoneNumber,
         });
