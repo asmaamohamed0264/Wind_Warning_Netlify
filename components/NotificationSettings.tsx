@@ -188,6 +188,22 @@ export function NotificationSettings() {
     }, 500);
   };
 
+  const maskEmail = (email: string): string => {
+    if (!email || !email.includes('@')) return email;
+    
+    const [localPart, domain] = email.split('@');
+    if (localPart.length <= 2) return email;
+    
+    // Păstrează primele 2 caractere și ultimele 2 caractere din partea locală
+    const maskedLocal = localPart.substring(0, 2) + '*'.repeat(Math.max(localPart.length - 4, 1)) + localPart.substring(localPart.length - 2);
+    
+    // Pentru domeniu, păstrează doar prima literă și restul după punct
+    const [domainName, ...domainExtension] = domain.split('.');
+    const maskedDomain = domainName.charAt(0) + '*'.repeat(Math.max(domainName.length - 1, 1)) + '.' + domainExtension.join('.');
+    
+    return `${maskedLocal}@${maskedDomain}`;
+  };
+
   return (
     <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700">
       <CardHeader>
@@ -330,7 +346,7 @@ export function NotificationSettings() {
               <div className="space-y-2">
                 <div className="flex items-center text-xs text-green-400 mb-2">
                   <Check className="h-3 w-3 mr-1" />
-                  Alertele email sunt activate pentru {emailAddress}
+                  Alertele email sunt activate pentru {maskEmail(emailAddress)}
                 </div>
                 <Button
                   onClick={handleEmailUnsubscribe}
