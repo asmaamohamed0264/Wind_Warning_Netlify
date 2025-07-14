@@ -5,14 +5,14 @@ import { Inter } from 'next/font/google';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Monitor Vânt Grand Arena - Protecție împotriva vânturilor periculoase',
-  description: 'Sistem proactiv de monitorizare și alertă timpurie pentru vânturi în zona Grand Arena. Primește alerte în timp real pentru condiții meteorologice periculoase prin notificări browser și SMS.',
-  keywords: 'alertă vânt, alerte meteo, Grand Arena, București, România, avertizare furtună, prognoză vânt, alerte siguranță',
+  title: 'Monitor Vânt Aleea Someșul Cald - Protecție împotriva vânturilor periculoase',
+  description: 'Sistem proactiv de monitorizare și alertă timpurie pentru vânturi pe Aleea Someșul Cald. Primește alerte în timp real pentru condiții meteorologice periculoase prin notificări browser și SMS.',
+  keywords: 'alertă vânt, alerte meteo, Aleea Someșul Cald, București, România, avertizare furtună, prognoză vânt, alerte siguranță',
   authors: [{ name: 'Bogdan pentru Loredana' }],
   viewport: 'width=device-width, initial-scale=1',
   themeColor: '#1f2937',
   openGraph: {
-    title: 'Monitor Vânt Grand Arena',
+    title: 'Monitor Vânt Aleea Someșul Cald',
     description: 'Fii cu un pas înaintea condițiilor meteorologice periculoase cu monitorizare în timp real și alerte proactive',
     type: 'website',
     locale: 'ro_RO',
@@ -35,7 +35,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Monitor Vânt" />
+        <meta name="apple-mobile-web-app-title" content="Monitor Vânt Aleea Someșul Cald" />
         
         {/* Preconnect to external domains for performance */}
         <link rel="preconnect" href="https://api.openweathermap.org" />

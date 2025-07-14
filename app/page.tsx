@@ -232,13 +232,13 @@ export default function Home() {
         <header className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
             <img src="/1000088934-modified.png" alt="Monitor Vânt Grand Arena" className="h-12 w-12 mr-3" />
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              Monitor Vânt Grand Arena
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent text-center">
+              Monitor Vânt Aleea Someșul Cald
             </h1>
           </div>
           <div className="flex items-center justify-center mb-2 text-gray-400">
             <MapPin className="h-4 w-4 mr-1" />
-            <span className="text-sm">Aleea Someșul Cald, zona Grand Arena, București</span>
+            <span className="text-sm">Aleea Someșul Cald, București</span>
           </div>
           <p className="text-gray-400 text-lg mb-4">
             Fii cu un pas înaintea condițiilor meteorologice periculoase cu monitorizare în timp real și alerte proactive
