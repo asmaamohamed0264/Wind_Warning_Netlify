@@ -110,11 +110,17 @@ const handler: Handler = async (event, context) => {
         // More specific error handling
         let errorMessage = 'Numărul de telefon nu este valid sau serviciul SMS este temporar indisponibil.';
         
-        if (twilioError.code === 21211) {
+        if (twilioError && typeof twilioError === 'object' && 'code' in twilioError) {
+          const error = twilioError as { code: number; message?: string };
+          
+          if (error.code === 21211) {
           errorMessage = 'Numărul de telefon nu este valid.';
-        } else if (twilioError.code === 21614) {
+          } else if (error.code === 21614) {
           errorMessage = 'Numărul de telefon nu poate primi SMS-uri.';
-        } else if (twilioError.message && twilioError.message.includes('phone number')) {
+          } else if (error.message && error.message.includes('phone number')) {
+          errorMessage = 'Numărul de telefon nu este valid pentru serviciul SMS.';
+          }
+        } else if (twilioError instanceof Error && twilioError.message.includes('phone number')) {
           errorMessage = 'Numărul de telefon nu este valid pentru serviciul SMS.';
         }
         
