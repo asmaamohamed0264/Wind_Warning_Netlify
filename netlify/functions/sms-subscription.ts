@@ -33,15 +33,30 @@ const handler: Handler = async (event, context) => {
 
       // Enhanced phone number validation for Romanian and international numbers
       const cleanPhone = phoneNumber.replace(/\s/g, '');
-      const romanianRegex = /^(\+40|0040|0)[72-79]\d{8}$/;
-      const internationalRegex = /^\+[1-9]\d{1,14}$/;
+      const cleanedPhone = phoneNumber.replace(/[\s\-\(\)]/g, ''); // Remove formatting
       
-      if (!romanianRegex.test(cleanPhone) && !internationalRegex.test(cleanPhone)) {
+      // Romanian phone validation (more flexible)
+      const romanianRegex = /^(\+40|0040|0)[72-79]\d{8}$/;
+      
+      // International validation (8-15 digits after country code)
+      const internationalRegex = /^\+[1-9]\d{8,14}$/;
+      
+      const isValidRomanian = romanianRegex.test(cleanedPhone);
+      const isValidInternational = internationalRegex.test(cleanedPhone);
+      
+      console.log('Server phone validation:', {
+        original: phoneNumber,
+        cleaned: cleanedPhone,
+        isValidRomanian,
+        isValidInternational
+      });
+      
+      if (!isValidRomanian && !isValidInternational) {
         return {
           statusCode: 400,
           headers,
           body: JSON.stringify({ 
-            error: 'Invalid phone number format. Please use Romanian format (+40XXXXXXXXX) or international format (+XXXXXXXXXXXX)' 
+            error: 'Formatul numărului de telefon nu este valid. Folosiți formatul românesc (+40XXXXXXXXX) sau internațional (+XXXXXXXXXXXX)' 
           }),
         };
       }
@@ -52,17 +67,18 @@ const handler: Handler = async (event, context) => {
       // Check if Twilio is configured
       const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID;
       const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN;
+      const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
       
-      if (!twilioAccountSid || !twilioAuthToken) {
-        console.log(`SMS subscription request: ${cleanPhone} (Twilio not configured)`);
+      if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
+        console.log(`SMS subscription request: ${cleanedPhone} (Twilio not configured)`);
         return {
           statusCode: 200,
           headers,
           body: JSON.stringify({
-            message: 'SMS subscription received. You will be notified when alerts are configured.',
-            phoneNumber: cleanPhone,
+            message: 'Cererea de abonare SMS a fost primită. Veți fi notificat când serviciul va fi configurat.',
+            phoneNumber: cleanedPhone,
             subscribedAt: new Date().toISOString(),
-            note: 'SMS service will be activated once Twilio credentials are configured.'
+            note: 'Serviciul SMS va fi activat odată ce credențialele Twilio sunt configurate.'
           }),
         };
       }
@@ -73,29 +89,39 @@ const handler: Handler = async (event, context) => {
         
         await twilio.messages.create({
           body: `🌪️ Bun venit la Monitor Vânt Aleea Someșul Cald!\n\nEști acum abonat la alertele SMS pentru condiții periculoase de vânt. Vei primi notificări când vânturile depășesc pragul tău.\n\nFii în siguranță!`,
-          from: process.env.TWILIO_PHONE_NUMBER,
-          to: cleanPhone,
+          from: twilioPhoneNumber,
+          to: cleanedPhone,
         });
 
-        console.log(`SMS subscription successful: ${cleanPhone}`);
+        console.log(`SMS subscription successful: ${cleanedPhone}`);
 
         return {
           statusCode: 200,
           headers,
           body: JSON.stringify({
-            message: 'Successfully subscribed to SMS alerts',
-            phoneNumber: cleanPhone,
+            message: 'Abonare SMS reușită',
+            phoneNumber: cleanedPhone,
             subscribedAt: new Date().toISOString(),
           }),
         };
       } catch (twilioError) {
         console.error('Twilio error:', twilioError);
+        
+        // More specific error handling
+        let errorMessage = 'Numărul de telefon nu este valid sau serviciul SMS este temporar indisponibil.';
+        
+        if (twilioError.code === 21211) {
+          errorMessage = 'Numărul de telefon nu este valid.';
+        } else if (twilioError.code === 21614) {
+          errorMessage = 'Numărul de telefon nu poate primi SMS-uri.';
+        } else if (twilioError.message && twilioError.message.includes('phone number')) {
+          errorMessage = 'Numărul de telefon nu este valid pentru serviciul SMS.';
+        }
+        
         return {
           statusCode: 400,
           headers,
-          body: JSON.stringify({ 
-            error: 'Invalid phone number or SMS service temporarily unavailable. Please check your number and try again.' 
-          }),
+          body: JSON.stringify({ error: errorMessage }),
         };
       }
     }

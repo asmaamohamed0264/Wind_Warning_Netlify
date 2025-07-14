@@ -76,23 +76,39 @@ export function NotificationSettings() {
   };
 
   const validatePhoneNumber = (phone: string): boolean => {
-    // Romanian phone number formats
-    const romanianRegex = /^(\+40|0040|0)[72-79]\d{8}$/;
-    // International format
-    const internationalRegex = /^\+[1-9]\d{1,14}$/;
+    // Enhanced Romanian phone number validation
+    const cleanPhone = phone.replace(/[\s\-\(\)]/g, ''); // Remove spaces, dashes, parentheses
     
-    const cleanPhone = phone.replace(/\s/g, '');
-    return romanianRegex.test(cleanPhone) || internationalRegex.test(cleanPhone);
+    // Romanian formats: +40XXXXXXXXX, 0040XXXXXXXXX, 07XXXXXXXX, 07XX XXX XXX
+    const romanianRegex = /^(\+40|0040|0)[72-79]\d{8}$/;
+    
+    // International format (more flexible)
+    const internationalRegex = /^\+[1-9]\d{8,14}$/;
+    
+    // Check if it matches Romanian or international format
+    const isRomanian = romanianRegex.test(cleanPhone);
+    const isInternational = internationalRegex.test(cleanPhone);
+    
+    console.log('Phone validation:', { 
+      original: phone, 
+      cleaned: cleanPhone, 
+      isRomanian, 
+      isInternational 
+    });
+    
+    return isRomanian || isInternational;
   };
 
   const handleSmsSubscribe = async () => {
-    if (!phoneNumber.trim()) {
+    const trimmedPhone = phoneNumber.trim();
+    
+    if (!trimmedPhone) {
       toast.error('Please enter a phone number');
       return;
     }
 
-    if (!validatePhoneNumber(phoneNumber)) {
-      toast.error('Please enter a valid phone number (Romanian: +40XXXXXXXXX or 07XXXXXXXX)');
+    if (!validatePhoneNumber(trimmedPhone)) {
+      toast.error('Vă rugăm introduceți un număr valid (ex: +40712345678, 0712345678)');
       return;
     }
 
@@ -104,28 +120,38 @@ export function NotificationSettings() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ phoneNumber: phoneNumber.trim() }),
+        body: JSON.stringify({ phoneNumber: trimmedPhone }),
       });
 
       const data = await response.json();
+      
+      console.log('SMS subscription response:', { status: response.status, data });
 
       if (response.ok) {
         setSmsEnabled(true);
-        localStorage.setItem('sms_phone_number', phoneNumber.trim());
+        localStorage.setItem('sms_phone_number', trimmedPhone);
         localStorage.setItem('sms_enabled', 'true');
-        toast.success('Successfully subscribed to SMS alerts!');
+        toast.success('Abonare SMS reușită! Veți primi un mesaj de confirmare.');
       } else {
-        toast.error(data.error || 'Failed to subscribe to SMS alerts');
+        // Handle specific error messages
+        if (data.error && data.error.includes('Invalid phone number')) {
+          toast.error('Numărul de telefon nu este valid sau serviciul SMS este temporar indisponibil');
+        } else if (data.error && data.error.includes('Twilio')) {
+          toast.error('Serviciul SMS nu este configurat. Contactați administratorul.');
+        } else {
+          toast.error(data.error || 'Eroare la abonarea SMS. Încercați din nou.');
+        }
       }
     } catch (error) {
       console.error('SMS subscription error:', error);
-      toast.error('Failed to subscribe to SMS alerts. Please try again.');
+      toast.error('Eroare de conexiune. Verificați internetul și încercați din nou.');
     } finally {
       setIsSubscribing(false);
     }
   };
 
   const handleSmsUnsubscribe = async () => {
+    const trimmedPhone = phoneNumber.trim();
     setIsUnsubscribing(true);
 
     try {
@@ -134,7 +160,7 @@ export function NotificationSettings() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ phoneNumber: phoneNumber.trim() }),
+        body: JSON.stringify({ phoneNumber: trimmedPhone }),
       });
 
       const data = await response.json();
@@ -142,13 +168,13 @@ export function NotificationSettings() {
       if (response.ok) {
         setSmsEnabled(false);
         localStorage.setItem('sms_enabled', 'false');
-        toast.success('Successfully unsubscribed from SMS alerts');
+        toast.success('Dezabonare SMS reușită');
       } else {
-        toast.error(data.error || 'Failed to unsubscribe from SMS alerts');
+        toast.error(data.error || 'Eroare la dezabonare SMS');
       }
     } catch (error) {
       console.error('SMS unsubscription error:', error);
-      toast.error('Failed to unsubscribe. Please try again.');
+      toast.error('Eroare la dezabonare. Încercați din nou.');
     } finally {
       setIsUnsubscribing(false);
     }
@@ -271,12 +297,15 @@ export function NotificationSettings() {
               <Input
                 id="phone"
                 type="tel"
-                placeholder="+40712345678 or 0712345678"
+                placeholder="+40712345678 sau 0712345678"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 className="mt-1 bg-gray-700/50 border-gray-600 text-white placeholder-gray-400"
                 disabled={smsEnabled}
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Acceptăm numere românești (+40) și internaționale
+              </p>
             </div>
 
             {!smsEnabled ? (
