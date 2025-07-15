@@ -100,9 +100,6 @@ export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }:
           </div>
 
           {/* Weather Description */}
-          <div className="text-center p-4 bg-gray-700/30 rounded-lg">
-            <p className="text-gray-300">Aleea Someșul Cald - {capitalizeFirst(translateWeatherDescription(data.description))}</p>
-          </div>
         </CardContent>
       </Card>
 
