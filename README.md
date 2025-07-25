@@ -47,6 +47,10 @@ TWILIO_PHONE_NUMBER=your_twilio_phone_number
 
 # Optional - SMS Subscribers (comma-separated phone numbers)
 SMS_SUBSCRIBERS=+40712345678,+40723456789
+
+# Web Push
+VAPID_PUBLIC_KEY=your_vapid_public_key
+VAPID_PRIVATE_KEY=your_vapid_private_key
 ```
 
 ### Local Development
@@ -71,6 +75,13 @@ npm run build
 3. **Set Environment Variables**: Add the variables listed above
 4. **Deploy**: Push to main branch for automatic deployment
 
+### Push Notifications
+
+1. Generate VAPID keys using `npx web-push generate-vapid-keys` and add them to your environment variables.
+2. Ensure your browser allows notifications and load the site over HTTPS.
+3. Toggle the "Notificări Push Browser" switch in the settings to subscribe.
+4. A test notification confirms that push is configured correctly.
+
 ## 📡 API Endpoints
 
 ### Weather Data
@@ -86,8 +97,14 @@ Body: { "phoneNumber": "+40712345678" }
 ```
 
 ```
-DELETE /api/sms-subscription  
+DELETE /api/sms-subscription
 Body: { "phoneNumber": "+40712345678" }
+```
+
+### Push Subscription
+```
+POST /api/push-subscription
+Body: { "subscription": { ... } }
 ```
 
 ### Send Alerts
