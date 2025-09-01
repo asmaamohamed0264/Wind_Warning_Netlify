@@ -72,5 +72,6 @@
     "@types/node": "24.0.13",
     "@types/react": "18.3.23",
     "typescript": "5.8.3"
+    "@types/web-push": "^3.6.4
   }
 }
