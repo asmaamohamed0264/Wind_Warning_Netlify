@@ -1,4 +1,4 @@
-a// netlify/functions/send-alerts.ts
+// netlify/functions/send-alerts.ts
 import type { Handler } from "@netlify/functions";
 
 /**
@@ -16,7 +16,7 @@ const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || "";
 const N8N_WEBHOOK_TOKEN = process.env.N8N_WEBHOOK_TOKEN || "";
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 
-// --- CORS helpers ----------------------------------------------------------
+// CORS
 const CORS = {
   "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
   "Access-Control-Allow-Methods": "POST,OPTIONS",
@@ -29,7 +29,7 @@ const json = (statusCode: number, data: unknown) => ({
   body: JSON.stringify(data),
 });
 
-// --- Util: retry cu timeout ------------------------------------------------
+// Retry + timeout
 async function postWithRetry(url: string, init: RequestInit, tries = 2, timeoutMs = 10_000) {
   let lastErr: unknown;
   for (let i = 0; i < tries; i++) {
@@ -39,7 +39,6 @@ async function postWithRetry(url: string, init: RequestInit, tries = 2, timeoutM
       const res = await fetch(url, { ...init, signal: ctrl.signal });
       clearTimeout(t);
       if (!res.ok) {
-        // includem și body-ul pt. debug
         const text = await res.text().catch(() => "");
         throw new Error(`HTTP ${res.status} ${res.statusText} — ${text.slice(0, 500)}`);
       }
@@ -47,18 +46,16 @@ async function postWithRetry(url: string, init: RequestInit, tries = 2, timeoutM
     } catch (e) {
       lastErr = e;
     }
-    // backoff scurt
-    await new Promise((r) => setTimeout(r, 500 * (i + 1)));
+    await new Promise((r) => setTimeout(r, 500 * (i + 1))); // backoff scurt
   }
   throw lastErr;
 }
 
-// --- Util: normalizează payload-ul minim -----------------------------------
+// Normalizează payload minim
 function normalizePayload(input: any) {
   const nowISO = new Date().toISOString();
   const wind = Number(input?.windSpeed ?? 0);
 
-  // Lăsăm n8n să decidă final, dar pregătim defaults utile
   let level = input?.level;
   if (!level) {
     if (wind >= 80) level = "red";
@@ -80,9 +77,8 @@ function normalizePayload(input: any) {
   };
 }
 
-// --- Handler ---------------------------------------------------------------
 export const handler: Handler = async (event) => {
-  // CORS preflight
+  // Preflight
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 204, headers: CORS, body: "" };
   }
@@ -91,7 +87,6 @@ export const handler: Handler = async (event) => {
     return json(405, { ok: false, error: "Method Not Allowed" });
   }
 
-  // Config lipsă?
   if (!N8N_WEBHOOK_URL || !N8N_WEBHOOK_TOKEN) {
     return json(500, {
       ok: false,
@@ -111,13 +106,13 @@ export const handler: Handler = async (event) => {
     return json(400, { ok: false, error: "Invalid JSON body" });
   }
 
-  // Validare minimă
+  // Validare
   const wind = Number(body?.windSpeed ?? 0);
   if (Number.isNaN(wind)) {
     return json(400, { ok: false, error: "windSpeed must be a number" });
   }
 
-  // Normalizează și forward-ează la n8n
+  // Forward la n8n
   const payload = normalizePayload(body);
 
   try {
@@ -127,13 +122,12 @@ export const handler: Handler = async (event) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // IMPORTANT: același token pe care îl verifici în IF-ul din n8n
-          "X-Webhook-Token": N8N_WEBHOOK_TOKEN,
+          "X-Webhook-Token": N8N_WEBHOOK_TOKEN, // verificat de IF-ul din n8n
         },
         body: JSON.stringify(payload),
       },
-      2, // număr de încercări
-      10_000 // timeout fiecare încercare
+      2,
+      10_000
     );
 
     const text = await res.text().catch(() => "");
@@ -145,9 +139,7 @@ export const handler: Handler = async (event) => {
       sentPayloadPreview: payload,
     });
   } catch (err: any) {
-    // log în Functions → Logs
     console.error("Forward to n8n failed:", err?.message || err);
-
     return json(502, {
       ok: false,
       error: "Forward to n8n failed",
