@@ -28,8 +28,11 @@ export function NotificationSettings() {
     
     // Inițializează OneSignal și verifică starea
     const initOneSignal = async () => {
+      // Încearcă inițializarea SDK; dacă eșuează, nu blocăm UI-ul
       await oneSignal.initialize();
-      setPushSupported(true);
+      // Detectare suport minim (browser cu Notifications + ServiceWorker)
+      const supported = typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator;
+      setPushSupported(supported);
       
       // Verifică dacă utilizatorul este abonat
       const isSubscribed = await oneSignal.isSubscribed();
@@ -111,27 +114,12 @@ export function NotificationSettings() {
   };
 
   const validatePhoneNumber = (phone: string): boolean => {
-    // Enhanced Romanian phone number validation
-    const cleanPhone = phone.replace(/[\s\-\(\)]/g, ''); // Remove spaces, dashes, parentheses
-    
-    // Romanian formats: +40XXXXXXXXX, 0040XXXXXXXXX, 07XXXXXXXX, 07XX XXX XXX
-    const romanianRegex = /^(\+40|0040|0)[6-79]\d{8}$/;
-    
-    // International format (more flexible)
-    const internationalRegex = /^\+[1-9]\d{8,14}$/;
-    
-    // Check if it matches Romanian or international format
-    const isRomanian = romanianRegex.test(cleanPhone);
-    const isInternational = internationalRegex.test(cleanPhone);
-    
-    console.log('Phone validation:', { 
-      original: phone, 
-      cleaned: cleanPhone, 
-      isRomanian, 
-      isInternational 
-    });
-    
-    return isRomanian || isInternational;
+    // Acceptăm DOAR formatul românesc cu prefix de țară +40, ex: +40712345678
+    const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+    const roE164 = /^\+40\d{9}$/; // +40 urmat de 9 cifre
+    const ok = roE164.test(cleanPhone);
+    console.log('Phone validation:', { original: phone, cleaned: cleanPhone, ok });
+    return ok;
   };
 
   const handleSmsSubscribe = async () => {
@@ -143,14 +131,14 @@ export function NotificationSettings() {
     }
 
     if (!validatePhoneNumber(trimmedPhone)) {
-      toast.error('Vă rugăm introduceți un număr valid (ex: +40712345678, 0712345678)');
+      toast.error('Vă rugăm introduceți un număr valid în format +40 (ex: +40712345678)');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Configurează SMS prin OneSignal
+      // Configurează SMS în serviciul de notificări
       await oneSignal.setSMSNumber(trimmedPhone);
       
       setSmsEnabled(true);
@@ -164,7 +152,7 @@ export function NotificationSettings() {
         location: 'Aleea Someșul Cald',
       });
       
-      toast.success('Abonare SMS reușită prin OneSignal!');
+      toast.success('Abonare SMS reușită!');
     } catch (error) {
       console.error('OneSignal SMS subscription error:', error);
       toast.error('Eroare la configurarea SMS-ului. Încercați din nou.');
@@ -177,7 +165,7 @@ export function NotificationSettings() {
     setIsLoading(true);
 
     try {
-      // Șterge numărul SMS din OneSignal
+      // Șterge numărul SMS din serviciul de notificări
       await oneSignal.setSMSNumber('');
       
       setSmsEnabled(false);
@@ -205,7 +193,7 @@ export function NotificationSettings() {
     setIsLoading(true);
     
     try {
-      // Configurează email prin OneSignal
+      // Configurează email în serviciul de notificări
       await oneSignal.setEmail(emailAddress.trim());
       
       setIsEmailSubscribed(true);
@@ -219,7 +207,7 @@ export function NotificationSettings() {
         location: 'Aleea Someșul Cald',
       });
       
-      toast.success(`Adresa ${emailAddress} a fost configurată în OneSignal!`);
+      toast.success(`Adresa ${emailAddress} a fost configurată!`);
     } catch (error) {
       console.error('OneSignal email configuration error:', error);
       toast.error('Eroare la configurarea email-ului. Încercați din nou.');
@@ -276,7 +264,8 @@ export function NotificationSettings() {
             <Switch
               checked={pushEnabled}
               onCheckedChange={handlePushToggle}
-              disabled={!pushSupported}
+              // Nu mai dezactivăm total; gestionăm erorile în handlePushToggle
+              disabled={isLoading}
             />
           </div>
           
@@ -322,14 +311,14 @@ export function NotificationSettings() {
               <Input
                 id="phone"
                 type="tel"
-                placeholder="+40712345678 sau 0712345678"
+                placeholder="+40712345678"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 className="mt-1 bg-gray-700/50 border-gray-600 text-white placeholder-gray-400"
                 disabled={smsEnabled}
               />
               <p className="text-xs text-gray-500 mt-1">
-                Acceptăm numere românești (+40) și internaționale
+                Introduceți numărul în format românesc cu prefix +40 (ex: +40712345678)
               </p>
             </div>
 
@@ -339,13 +328,13 @@ export function NotificationSettings() {
                 disabled={isLoading || !phoneNumber.trim()}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white"
               >
-                {isLoading ? 'Se configurează...' : 'Configurează SMS în OneSignal'}
+                {isLoading ? 'Se configurează...' : 'Configurează SMS'}
               </Button>
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center text-xs text-green-400 mb-2">
                   <Check className="h-3 w-3 mr-1" />
-                  SMS configurat în OneSignal: {phoneNumber}
+                  SMS configurat: {phoneNumber}
                 </div>
                 <Button
                   onClick={handleSmsUnsubscribe}
@@ -394,13 +383,13 @@ export function NotificationSettings() {
                 disabled={isLoading || !emailAddress.trim()}
                 className="w-full bg-green-600 hover:bg-green-700 text-white"
               >
-                {isLoading ? 'Se configurează...' : 'Configurează Email în OneSignal'}
+                {isLoading ? 'Se configurează...' : 'Configurează Email'}
               </Button>
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center text-xs text-green-400 mb-2">
                   <Check className="h-3 w-3 mr-1" />
-                  Email configurat în OneSignal: {maskEmail(emailAddress)}
+                  Email configurat: {maskEmail(emailAddress)}
                 </div>
                 <Button
                   onClick={handleEmailUnsubscribe}
@@ -420,18 +409,17 @@ export function NotificationSettings() {
           {!pushSupported && (
             <div className="flex items-center text-xs text-yellow-400 mb-2">
               <AlertCircle className="h-3 w-3 mr-1" />
-              OneSignal nu este disponibil în acest browser
+              Notificările push nu sunt disponibile în acest browser
             </div>
           )}
           <p className="text-xs text-gray-500">
-            Toate notificările sunt gestionate prin OneSignal (Push, SMS, Email). 
             Alertele sunt trimise când vitezele vântului depășesc pragul configurat.
             Te poți dezabona oricând din orice tip de notificare.
           </p>
           {pushEnabled && (
             <div className="flex items-center text-xs text-green-400">
               <Check className="h-3 w-3 mr-1" />
-              OneSignal Push activat
+              Notificări Push activate
             </div>
           )}
         </div>

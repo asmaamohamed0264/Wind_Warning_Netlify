@@ -168,15 +168,21 @@ export const handler: Handler = async (event) => {
 
   const payload = normalizePayload(body);
   const config = getAlertConfig(payload.level);
+  const channelsInput = Array.isArray(body?.channels) ? body.channels.map((c: any) => String(c).toLowerCase()) : null;
+  const wantPush = !channelsInput || channelsInput.includes('push');
+  const wantEmail = !channelsInput || channelsInput.includes('email');
+  const wantSMS = !channelsInput || channelsInput.includes('sms');
 
   try {
     // Construiește notificarea OneSignal
     const notification = new OneSignal.Notification();
     notification.app_id = ONESIGNAL_APP_ID;
     
-    // Conținut notificare
-    notification.headings = { en: formatAlertTitle(payload.level, payload.windSpeed) };
-    notification.contents = { en: payload.message };
+    // Conținut notificare Push (dacă e cerut)
+    if (wantPush) {
+      notification.headings = { en: formatAlertTitle(payload.level, payload.windSpeed) } as any;
+      notification.contents = { en: payload.message } as any;
+    }
     
     // Configurări avansate
     notification.priority = config.priority;
@@ -200,13 +206,13 @@ export const handler: Handler = async (event) => {
     notification.included_segments = ["Subscribed Users"];
 
     // Template pentru email (dacă utilizatorul are email configurat)
-    if (payload.level !== 'normal') {
+    if (wantEmail && payload.level !== 'normal') {
       notification.email_subject = formatAlertTitle(payload.level, payload.windSpeed);
       notification.email_body = generateEmailHTML(payload);
     }
 
     // Template pentru SMS (dacă utilizatorul are SMS configurat) 
-    if (payload.level !== 'normal') {
+    if (wantSMS && payload.level !== 'normal') {
       notification.sms_from = "WindAlert";
       notification.sms_media_urls = [];
     }
@@ -219,6 +225,14 @@ export const handler: Handler = async (event) => {
       location: "Aleea Someșul Cald",
       timestamp: payload.time
     };
+
+    // Dacă se specifică exact un canal, setează un target explicit
+    if (channelsInput && channelsInput.length === 1) {
+      const only = channelsInput[0];
+      if (only === 'push' || only === 'email' || only === 'sms') {
+        (notification as any).target_channel = only;
+      }
+    }
 
     // Trimite notificarea
     console.log(`Sending OneSignal notification for ${payload.level} alert (${payload.windSpeed} km/h)`);
