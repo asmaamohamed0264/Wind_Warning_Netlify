@@ -398,14 +398,32 @@ export function NotificationSettings() {
                   className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
                 >
                   {isLoading ? 'Se dezactivează...' : 'Dezactivează Email'}
-                OneSignal nu este disponibil în acest browser
+                </Button>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Info Section */}
+        <div className="space-y-2 border-t border-gray-700 pt-4">
+          {!pushSupported && (
+            <div className="flex items-center text-xs text-yellow-400 mb-2">
+              <AlertCircle className="h-3 w-3 mr-1" />
+              OneSignal nu este disponibil în acest browser
+            </div>
+          )}
+          <p className="text-xs text-gray-500">
             Toate notificările sunt gestionate prin OneSignal (Push, SMS, Email). 
             Alertele sunt trimise când vitezele vântului depășesc pragul configurat.
             Te poți dezabona oricând din orice tip de notificare.
           </p>
-                OneSignal Push activat
+          {pushEnabled && (
+            <div className="flex items-center text-xs text-green-400">
+              <Check className="h-3 w-3 mr-1" />
+              OneSignal Push activat
+            </div>
+          )}
+        </div>
         
         {/* Test Notification Button */}
         {pushEnabled && (
