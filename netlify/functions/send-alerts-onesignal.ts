@@ -9,8 +9,10 @@ import * as OneSignal from '@onesignal/node-onesignal';
  * OneSignal unifică toate notificările: Push, SMS, Email
  */
 
-// Accesăm variabilele de mediu dinamic pentru a evita înlocuirile de build
-const getEnv = (key: string) => (process.env as Record<string, string | undefined>)[key];
+// Accesăm variabilele de mediu dinamic; evităm literalii "process.env" ca să nu fie înlocuiți de plugin
+const getEnv = (key: string) => (
+  (globalThis as any)?.['process']?.['env']?.[key] as string | undefined
+);
 const ONESIGNAL_API_KEY = getEnv('VITE_ONESIGNAL_API_KEY') || "";
 const ONESIGNAL_APP_ID = getEnv('VITE_ONESIGNAL_APP_ID') || "";
 const ALLOWED_ORIGIN = getEnv('ALLOWED_ORIGIN') || "*";
@@ -184,7 +186,7 @@ export const handler: Handler = async (event) => {
     notification.firefox_icon = "/1000088934-modified.png";
     
     // URL pentru click
-    notification.url = process.env.URL || "https://admirable-sherbet-bfa64f.netlify.app";
+    notification.url = getEnv('URL') || "https://admirable-sherbet-bfa64f.netlify.app";
     
     // Sound și vibrație
     if (payload.level === 'danger') {
