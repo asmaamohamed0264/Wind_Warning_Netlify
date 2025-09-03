@@ -224,12 +224,13 @@ export const handler: Handler = async (event) => {
     console.log(`Sending OneSignal notification for ${payload.level} alert (${payload.windSpeed} km/h)`);
     
     const response = await onesignalClient.createNotification(notification);
-    
+    const anyRes: any = response as any;
+
     return json(200, {
       ok: true,
       provider: "OneSignal",
-      notificationId: response.id,
-      recipients: response.recipients,
+      notificationId: (anyRes?.id ?? anyRes?.data?.id ?? null),
+      recipients: (anyRes?.recipients ?? anyRes?.data?.recipients ?? undefined),
       level: payload.level,
       windSpeed: payload.windSpeed,
       message: "Alert sent successfully via OneSignal"
