@@ -23,6 +23,12 @@ export default function Home() {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [isOnline, setIsOnline] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure we're on the client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Load saved threshold from localStorage
   useEffect(() => {
@@ -63,14 +69,16 @@ export default function Home() {
     fetchWeatherData();
     const interval = setInterval(fetchWeatherData, 300000); // Update every 5 minutes
     
-    // Inițializează OneSignal
-    oneSignal.initialize();
+    // Inițializează OneSignal doar pe client
+    if (isClient) {
+      oneSignal.initialize();
+    }
     
     return () => clearInterval(interval);
-  }, []);
+  }, [isClient]);
 
   useEffect(() => {
-    if (forecastData.length > 0) {
+    if (forecastData && forecastData.length > 0) {
       analyzeForecasts();
     }
   }, [forecastData, alertThreshold]);
@@ -111,6 +119,10 @@ export default function Home() {
   };
 
   const analyzeForecasts = () => {
+    if (!forecastData || forecastData.length === 0) {
+      return;
+    }
+    
     const next8Hours = forecastData.slice(0, 8);
     const dangerousWinds = next8Hours.filter(forecast => 
       forecast.windSpeed > alertThreshold || forecast.windGust > alertThreshold
@@ -289,7 +301,7 @@ export default function Home() {
               <WeatherDashboard 
                 data={weatherData} 
                 alertLevel={alertLevel}
-                forecast={forecastData.slice(0, 8)}
+                forecast={forecastData ? forecastData.slice(0, 8) : []}
                 threshold={alertThreshold}
               />
             )}

@@ -21,6 +21,11 @@ export function NotificationSettings() {
   const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
 
   useEffect(() => {
+    // Verifică dacă suntem pe client
+    if (typeof window === 'undefined') {
+      return;
+    }
+    
     // Inițializează OneSignal și verifică starea
     const initOneSignal = async () => {
       await oneSignal.initialize();

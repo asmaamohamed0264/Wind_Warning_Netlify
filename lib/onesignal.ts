@@ -14,6 +14,11 @@ export class OneSignalManager {
 
   async initialize() {
     if (this.initialized) return;
+    
+    // Verifică dacă suntem pe client
+    if (typeof window === 'undefined') {
+      return;
+    }
 
     const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || process.env.VITE_ONESIGNAL_APP_ID;
     
@@ -81,6 +86,10 @@ export class OneSignalManager {
   }
 
   async requestPermission(): Promise<boolean> {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    
     if (!this.initialized) {
       await this.initialize();
     }
@@ -104,6 +113,10 @@ export class OneSignalManager {
   }
 
   async isSubscribed(): Promise<boolean> {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    
     if (!this.initialized) {
       return false;
     }
