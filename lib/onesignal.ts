@@ -1,10 +1,18 @@
 // OneSignal SDK pentru frontend (React wrapper)
-// Folosim importul implicit corect pentru versiunea instalată
-import OneSignal from 'react-onesignal';
+// Importăm dinamic pentru a evita probleme la build/SSR
 
 export class OneSignalManager {
   private static instance: OneSignalManager;
   private initialized = false;
+  private sdk: any | null = null;
+
+  private async loadSDK() {
+    if (typeof window === 'undefined') return null;
+    if (this.sdk) return this.sdk;
+    const mod: any = await import('react-onesignal');
+    this.sdk = mod?.default ?? mod;
+    return this.sdk;
+  }
 
   static getInstance(): OneSignalManager {
     if (!OneSignalManager.instance) {
@@ -29,7 +37,9 @@ export class OneSignalManager {
     }
 
     try {
-      // API-ul react-onesignal expune un obiect implicit cu metode precum init/on/etc.
+      const OneSignal = await this.loadSDK();
+      if (!OneSignal) return;
+      // API-ul react-onesignal expune metode precum init/on/etc.
       await OneSignal.init({
         appId,
         safari_web_id: 'web.onesignal.auto.18140b17-b78f-4328-83f2-0a73b3bd766f',
@@ -53,19 +63,21 @@ export class OneSignalManager {
     // Dacă librăria este actualizată la SDK v16, aceste evenimente pot să nu mai existe.
     // În acest caz, pur și simplu vor fi ignorate.
     try {
-      (OneSignal as any).on?.('subscriptionChange', (isSubscribed: boolean) => {
+      const sdk = this.sdk;
+      if (!sdk) return;
+      (sdk as any).on?.('subscriptionChange', (isSubscribed: boolean) => {
         console.log('OneSignal subscription changed:', isSubscribed);
         localStorage.setItem('onesignal_subscribed', String(isSubscribed));
       });
 
-      (OneSignal as any).on?.('notificationReceived', (event: any) => {
+      (sdk as any).on?.('notificationReceived', (event: any) => {
         console.log('OneSignal notification received:', event);
         if (event?.data?.type === 'wind_alert') {
           this.handleWindAlert(event.data);
         }
       });
 
-      (OneSignal as any).on?.('notificationClicked', (event: any) => {
+      (sdk as any).on?.('notificationClicked', (event: any) => {
         console.log('OneSignal notification clicked:', event);
         if (window.focus) window.focus();
       });
@@ -93,6 +105,8 @@ export class OneSignalManager {
     }
 
     try {
+      const OneSignal = await this.loadSDK();
+      if (!OneSignal) return false;
       const permission = await (OneSignal as any).getNotificationPermission?.();
       if (permission === 'granted') return true;
 
@@ -126,6 +140,8 @@ export class OneSignalManager {
     }
 
     try {
+      const OneSignal = await this.loadSDK();
+      if (!OneSignal) return false;
       if ((OneSignal as any).isPushNotificationsEnabled) {
         return await (OneSignal as any).isPushNotificationsEnabled();
       }
@@ -143,6 +159,8 @@ export class OneSignalManager {
     }
 
     try {
+      const OneSignal = await this.loadSDK();
+      if (!OneSignal) return false;
       const hasPermission = await this.requestPermission();
       if (!hasPermission) {
         return false;
@@ -164,6 +182,8 @@ export class OneSignalManager {
     }
 
     try {
+      const OneSignal = await this.loadSDK();
+      if (!OneSignal) return true;
       if ((OneSignal as any).setSubscription) {
         await (OneSignal as any).setSubscription(false);
       }
@@ -180,6 +200,8 @@ export class OneSignalManager {
     }
 
     try {
+      const OneSignal = await this.loadSDK();
+      if (!OneSignal) return null;
       if ((OneSignal as any).getUserId) {
         return await (OneSignal as any).getUserId();
       }
@@ -196,6 +218,8 @@ export class OneSignalManager {
     }
 
     try {
+      const OneSignal = await this.loadSDK();
+      if (!OneSignal) return;
       if ((OneSignal as any).setEmail) {
         await (OneSignal as any).setEmail(email);
       }
@@ -212,6 +236,8 @@ export class OneSignalManager {
     }
 
     try {
+      const OneSignal = await this.loadSDK();
+      if (!OneSignal) return;
       if ((OneSignal as any).setSMSNumber) {
         await (OneSignal as any).setSMSNumber(phoneNumber);
       }
@@ -228,6 +254,8 @@ export class OneSignalManager {
     }
 
     try {
+      const OneSignal = await this.loadSDK();
+      if (!OneSignal) return;
       if ((OneSignal as any).sendTags) {
         await (OneSignal as any).sendTags(tags);
       }

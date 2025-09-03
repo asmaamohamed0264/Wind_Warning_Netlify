@@ -9,9 +9,11 @@ import * as OneSignal from '@onesignal/node-onesignal';
  * OneSignal unifică toate notificările: Push, SMS, Email
  */
 
-const ONESIGNAL_API_KEY = process.env.VITE_ONESIGNAL_API_KEY || "";
-const ONESIGNAL_APP_ID = process.env.VITE_ONESIGNAL_APP_ID || "";
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
+// Accesăm variabilele de mediu dinamic pentru a evita înlocuirile de build
+const getEnv = (key: string) => (process.env as Record<string, string | undefined>)[key];
+const ONESIGNAL_API_KEY = getEnv('VITE_ONESIGNAL_API_KEY') || "";
+const ONESIGNAL_APP_ID = getEnv('VITE_ONESIGNAL_APP_ID') || "";
+const ALLOWED_ORIGIN = getEnv('ALLOWED_ORIGIN') || "*";
 
 // CORS
 const CORS = {
