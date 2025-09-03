@@ -1,5 +1,10 @@
 import type { Handler } from '@netlify/functions';
 
+// Simple in-memory cache to reduce upstream API calls (per warm function instance)
+const CACHE_TTL_MS = Number(process.env.WEATHER_CACHE_TTL_MS || 120000); // default 2 minutes
+let cacheBody: string | null = null;
+let cacheTime = 0;
+
 const handler: Handler = async (event, context) => {
   // Set CORS headers
   const headers = {
@@ -35,6 +40,16 @@ const handler: Handler = async (event, context) => {
   }
 
   try {
+    // Serve from cache if fresh
+    const now = Date.now();
+    if (cacheBody && (now - cacheTime) < CACHE_TTL_MS) {
+      return {
+        statusCode: 200,
+        headers: { ...headers, 'X-Cache': 'HIT' },
+        body: cacheBody,
+      };
+    }
+
     // Bucharest coordinates
     const lat = 44.4268;
     const lon = 26.1025;
@@ -86,13 +101,19 @@ const handler: Handler = async (event, context) => {
       icon: item.weather[0].icon,
     }));
 
+    const body = JSON.stringify({
+      current,
+      forecast,
+    });
+
+    // Update cache
+    cacheBody = body;
+    cacheTime = now;
+
     return {
       statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        current,
-        forecast,
-      }),
+      headers: { ...headers, 'X-Cache': 'MISS' },
+      body,
     };
   } catch (error) {
     console.error('Error fetching weather data:', error);

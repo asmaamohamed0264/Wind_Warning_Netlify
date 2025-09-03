@@ -177,7 +177,7 @@ export default function Home() {
 
     // Toate notificările prin OneSignal (Push, SMS, Email)
     try {
-      await fetch('/api/send-alerts-onesignal', {
+      await fetch('/api/send-alerts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

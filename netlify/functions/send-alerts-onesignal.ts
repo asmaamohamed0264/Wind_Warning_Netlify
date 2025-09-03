@@ -3,8 +3,8 @@ import * as OneSignal from '@onesignal/node-onesignal';
 
 /**
  * ENV necesare (Netlify):
- *  - VITE_ONESIGNAL_API_KEY = os_v2_app_4stt4ncdcvapzeoi2ngafgq7dz4mtbgvj3fu5be43bwfef6fwe4dpl4375hujgifljjge4borxnewvqzlpsavr64ujwacxlyc5lenty
- *  - VITE_ONESIGNAL_APP_ID = e4a73e34-4315-40fc-91c8-d34c029a1f1e
+ *  - VITE_ONESIGNAL_API_KEY = <cheie REST OneSignal>
+ *  - VITE_ONESIGNAL_APP_ID = <app id OneSignal>
  *
  * OneSignal unifică toate notificările: Push, SMS, Email
  */

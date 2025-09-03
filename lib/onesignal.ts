@@ -1,5 +1,6 @@
-// OneSignal SDK pentru frontend
-import * as OneSignal from 'react-onesignal';
+// OneSignal SDK pentru frontend (React wrapper)
+// Folosim importul implicit corect pentru versiunea instalată
+import OneSignal from 'react-onesignal';
 
 export class OneSignalManager {
   private static instance: OneSignalManager;
@@ -14,7 +15,7 @@ export class OneSignalManager {
 
   async initialize() {
     if (this.initialized) return;
-    
+
     // Verifică dacă suntem pe client
     if (typeof window === 'undefined') {
       return;
@@ -28,14 +29,13 @@ export class OneSignalManager {
     }
 
     try {
+      // API-ul react-onesignal expune un obiect implicit cu metode precum init/on/etc.
       await OneSignal.init({
-        appId: appId,
+        appId,
         safari_web_id: 'web.onesignal.auto.18140b17-b78f-4328-83f2-0a73b3bd766f',
-        notifyButton: {
-          enable: false, // Folosim propriul nostru UI
-        },
+        notifyButton: { enable: false },
         allowLocalhostAsSecureOrigin: process.env.NODE_ENV === 'development',
-      });
+      } as any);
 
       this.initialized = true;
       console.log('OneSignal initialized successfully');
@@ -49,31 +49,29 @@ export class OneSignalManager {
   }
 
   private setupEventListeners() {
-    // Când utilizatorul se abonează
-    OneSignal.on('subscriptionChange', (isSubscribed: boolean) => {
-      console.log('OneSignal subscription changed:', isSubscribed);
-      localStorage.setItem('onesignal_subscribed', isSubscribed.toString());
-    });
+    // Evenimente clasice din react-onesignal (SDK v2)
+    // Dacă librăria este actualizată la SDK v16, aceste evenimente pot să nu mai existe.
+    // În acest caz, pur și simplu vor fi ignorate.
+    try {
+      (OneSignal as any).on?.('subscriptionChange', (isSubscribed: boolean) => {
+        console.log('OneSignal subscription changed:', isSubscribed);
+        localStorage.setItem('onesignal_subscribed', String(isSubscribed));
+      });
 
-    // Când se primește o notificare
-    OneSignal.on('notificationReceived', (event: any) => {
-      console.log('OneSignal notification received:', event);
-      
-      // Dacă este alertă de vânt, poți adăuga logică suplimentară
-      if (event.data?.type === 'wind_alert') {
-        this.handleWindAlert(event.data);
-      }
-    });
+      (OneSignal as any).on?.('notificationReceived', (event: any) => {
+        console.log('OneSignal notification received:', event);
+        if (event?.data?.type === 'wind_alert') {
+          this.handleWindAlert(event.data);
+        }
+      });
 
-    // Când se face click pe notificare
-    OneSignal.on('notificationClicked', (event: any) => {
-      console.log('OneSignal notification clicked:', event);
-      
-      // Focus pe aplicație
-      if (window.focus) {
-        window.focus();
-      }
-    });
+      (OneSignal as any).on?.('notificationClicked', (event: any) => {
+        console.log('OneSignal notification clicked:', event);
+        if (window.focus) window.focus();
+      });
+    } catch (e) {
+      console.warn('OneSignal event listeners not available:', e);
+    }
   }
 
   private handleWindAlert(data: any) {
@@ -95,17 +93,23 @@ export class OneSignalManager {
     }
 
     try {
-      const permission = await OneSignal.getNotificationPermission();
-      
-      if (permission === 'granted') {
-        return true;
+      const permission = await (OneSignal as any).getNotificationPermission?.();
+      if (permission === 'granted') return true;
+
+      // Solicită permisiune clasică (SDK v2)
+      if ((OneSignal as any).showSlidedownPrompt) {
+        await (OneSignal as any).showSlidedownPrompt();
+        const newPermission = await (OneSignal as any).getNotificationPermission?.();
+        return newPermission === 'granted';
       }
 
-      // Solicită permisiune
-      await OneSignal.showSlidedownPrompt();
-      const newPermission = await OneSignal.getNotificationPermission();
-      
-      return newPermission === 'granted';
+      // Fallback: încearcă API-ul browser
+      if (Notification && Notification.requestPermission) {
+        const res = await Notification.requestPermission();
+        return res === 'granted';
+      }
+
+      return false;
     } catch (error) {
       console.error('OneSignal permission request failed:', error);
       return false;
@@ -122,7 +126,11 @@ export class OneSignalManager {
     }
 
     try {
-      return await OneSignal.isPushNotificationsEnabled();
+      if ((OneSignal as any).isPushNotificationsEnabled) {
+        return await (OneSignal as any).isPushNotificationsEnabled();
+      }
+      // Fallback: verifică localStorage setat la subscriptionChange
+      return localStorage.getItem('onesignal_subscribed') === 'true';
     } catch (error) {
       console.error('OneSignal subscription check failed:', error);
       return false;
@@ -140,7 +148,9 @@ export class OneSignalManager {
         return false;
       }
 
-      await OneSignal.setSubscription(true);
+      if ((OneSignal as any).setSubscription) {
+        await (OneSignal as any).setSubscription(true);
+      }
       return await this.isSubscribed();
     } catch (error) {
       console.error('OneSignal subscription failed:', error);
@@ -154,7 +164,9 @@ export class OneSignalManager {
     }
 
     try {
-      await OneSignal.setSubscription(false);
+      if ((OneSignal as any).setSubscription) {
+        await (OneSignal as any).setSubscription(false);
+      }
       return !(await this.isSubscribed());
     } catch (error) {
       console.error('OneSignal unsubscription failed:', error);
@@ -168,7 +180,10 @@ export class OneSignalManager {
     }
 
     try {
-      return await OneSignal.getUserId();
+      if ((OneSignal as any).getUserId) {
+        return await (OneSignal as any).getUserId();
+      }
+      return null;
     } catch (error) {
       console.error('OneSignal getUserId failed:', error);
       return null;
@@ -181,7 +196,9 @@ export class OneSignalManager {
     }
 
     try {
-      await OneSignal.setEmail(email);
+      if ((OneSignal as any).setEmail) {
+        await (OneSignal as any).setEmail(email);
+      }
       console.log('OneSignal email set:', email);
     } catch (error) {
       console.error('OneSignal setEmail failed:', error);
@@ -195,7 +212,9 @@ export class OneSignalManager {
     }
 
     try {
-      await OneSignal.setSMSNumber(phoneNumber);
+      if ((OneSignal as any).setSMSNumber) {
+        await (OneSignal as any).setSMSNumber(phoneNumber);
+      }
       console.log('OneSignal SMS number set:', phoneNumber);
     } catch (error) {
       console.error('OneSignal setSMSNumber failed:', error);
@@ -209,7 +228,9 @@ export class OneSignalManager {
     }
 
     try {
-      await OneSignal.sendTags(tags);
+      if ((OneSignal as any).sendTags) {
+        await (OneSignal as any).sendTags(tags);
+      }
       console.log('OneSignal tags set:', tags);
     } catch (error) {
       console.error('OneSignal setTags failed:', error);
