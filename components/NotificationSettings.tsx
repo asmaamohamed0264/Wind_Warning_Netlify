@@ -18,6 +18,7 @@ export function NotificationSettings() {
   const [emailAddress, setEmailAddress] = useState('');
   const [isEmailSubscribed, setIsEmailSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
 
   useEffect(() => {
     // Inițializează OneSignal și verifică starea
@@ -28,6 +29,11 @@ export function NotificationSettings() {
       // Verifică dacă utilizatorul este abonat
       const isSubscribed = await oneSignal.isSubscribed();
       setPushEnabled(isSubscribed);
+      
+      // Verifică permisiunea pentru notificări
+      if ('Notification' in window) {
+        setPushPermission(Notification.permission);
+      }
     };
 
     initOneSignal();
