@@ -98,7 +98,7 @@ export default function Home() {
       
       const data = await response.json();
       setWeatherData(data.current);
-      setForecastData(data.forecast);
+      setForecastData(data.forecast || []);
       setLastUpdate(new Date());
       setLoading(false);
       

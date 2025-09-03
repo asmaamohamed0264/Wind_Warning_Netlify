@@ -1,5 +1,5 @@
 // OneSignal SDK pentru frontend
-import OneSignal from 'react-onesignal';
+import * as OneSignal from 'react-onesignal';
 
 export class OneSignalManager {
   private static instance: OneSignalManager;
