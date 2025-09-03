@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { oneSignal } from '@/lib/onesignal';
 import { WeatherDashboard } from '@/components/WeatherDashboard';
 import { AlertPanel } from '@/components/AlertPanel';
 import { ThresholdControl } from '@/components/ThresholdControl';
@@ -61,6 +62,10 @@ export default function Home() {
   useEffect(() => {
     fetchWeatherData();
     const interval = setInterval(fetchWeatherData, 300000); // Update every 5 minutes
+    
+    // Inițializează OneSignal
+    oneSignal.initialize();
+    
     return () => clearInterval(interval);
   }, []);
 
@@ -158,21 +163,9 @@ export default function Home() {
   const triggerNotifications = async (level: AlertLevel, windSpeed: number, time: string) => {
     const alertMessage = generateAlertMessage(level, windSpeed);
 
-    // Browser Push Notification
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('🌪️ Alertă Vânt Grand Arena', {
-        body: alertMessage,
-        icon: '/1000088934-modified.png',
-        badge: '/1000088934-modified.png',
-        tag: 'wind-alert',
-        requireInteraction: level === 'danger',
-        silent: false
-      });
-    }
-
-    // SMS Notifications via Netlify Function
+    // Toate notificările prin OneSignal (Push, SMS, Email)
     try {
-      await fetch('/api/send-alerts', {
+      await fetch('/api/send-alerts-onesignal', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -184,26 +177,10 @@ export default function Home() {
           message: alertMessage
         }),
       });
+      
+      console.log(`OneSignal notification sent: Level ${level}, Wind ${Math.round(windSpeed)} km/h`);
     } catch (error) {
-      console.error('Failed to send SMS alerts:', error);
-    }
-
-    // Email Notifications
-    if (localStorage.getItem('email_enabled') === 'true') {
-      try {
-        await fetch('/api/email-alert', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            level, 
-            windSpeed: Math.round(windSpeed), 
-            message: alertMessage 
-          }),
-        });
-        console.log('Email alerts triggered successfully');
-      } catch (error) {
-        console.error('Failed to send email alerts:', error);
-      }
+      console.error('Failed to send OneSignal alerts:', error);
     }
   };
 
