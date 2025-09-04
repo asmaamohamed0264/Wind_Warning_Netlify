@@ -284,14 +284,33 @@ const handleSmsUnsubscribe = async () => {
               Notificările push sunt blocate. Te rog activează-le în setările browserului.
             </div>
           )}
-          
-          {pushEnabled && (
-            <div className="flex items-center text-xs text-green-400">
-              <Check className="h-3 w-3 mr-1" />
-              Notificările push sunt activate
-            </div>
-          )}
-        </div>
+         {/* Status când push e activ */}
+{pushEnabled ? (
+  <div className="flex items-center text-xs text-green-400">
+    <Check className="h-3 w-3 mr-1" />
+    <span>Notificările push sunt activate</span>
+  </div>
+) : null}
+
+{/* Test Notification Button */}
+{pushEnabled && (
+  <div className="pt-4 border-t border-gray-700">
+    <Button
+      onClick={async () => {
+        try {
+          await sendServerTestNotification();
+          console.log('✅ Notificare de test trimisă');
+        } catch (e) {
+          console.error('❌ Eroare la trimitere', e);
+        }
+      }}
+      className="w-full mt-3"
+      variant="secondary"
+    >
+      🧪 Trimite Notificare de Test
+    </Button>
+  </div>
+)}
 
         {/* SMS Notifications */}
         <div className="space-y-4 border-t border-gray-700 pt-4">
