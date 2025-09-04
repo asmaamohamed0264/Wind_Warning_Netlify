@@ -163,20 +163,19 @@ export function NotificationSettings() {
 
   // ✅ DEZABONARE SMS (v16)
   const handleSmsUnsubscribe = async () => {
-    setIsLoading(true);
-    try {
-      // Elimină subscripția SMS din OneSignal (v16)
-      await oneSignal.removeSms(phoneNumber.trim());
-      setSmsEnabled(false);
-      localStorage.setItem('sms_enabled', 'false');
-      toast.success('Dezabonare SMS reușită');
-    } catch (error) {
-      console.error('OneSignal SMS unsubscription error:', error);
-      toast.error('Eroare la dezabonare. Încercați din nou.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  setIsLoading(true);
+  try {
+    await oneSignal.removeSms(phoneNumber.trim());
+    setSmsEnabled(false);
+    localStorage.setItem('sms_enabled', 'false');
+    toast.success('Dezabonare SMS reușită');
+  } catch (error) {
+    console.error('OneSignal SMS unsubscription error:', error);
+    toast.error('Eroare la dezabonare. Încercați din nou.');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -217,20 +216,19 @@ export function NotificationSettings() {
 
   // ✅ DEZABONARE EMAIL (v16)
   const handleEmailUnsubscribe = async () => {
-    setIsLoading(true);
-    try {
-      // Elimină subscripția Email din OneSignal (v16)
-      await oneSignal.removeEmail(emailAddress.trim());
-      setIsEmailSubscribed(false);
-      localStorage.setItem('email_enabled', 'false');
-      toast.success('Email dezactivat pentru alerte.');
-    } catch (error) {
-      console.error('OneSignal email unsubscription error:', error);
-      toast.error('Eroare la dezactivare email. Încercați din nou.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  setIsLoading(true);
+  try {
+    await oneSignal.removeEmail(emailAddress.trim());
+    setIsEmailSubscribed(false);
+    localStorage.setItem('email_enabled', 'false');
+    toast.success('Email dezactivat pentru alerte.');
+  } catch (error) {
+    console.error('OneSignal email unsubscription error:', error);
+    toast.error('Eroare la dezactivare email. Încercați din nou.');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const maskEmail = (email: string): string => {
     if (!email || !email.includes('@')) return email;
