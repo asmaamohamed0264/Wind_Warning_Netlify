@@ -161,23 +161,21 @@ export function NotificationSettings() {
     }
   };
 
-  const handleSmsUnsubscribe = async () => {
-    setIsLoading(true);
-
-    try {
-      // Șterge numărul SMS din serviciul de notificări
-      await oneSignal.setSMSNumber('');
-      
-      setSmsEnabled(false);
-      localStorage.setItem('sms_enabled', 'false');
-      toast.success('Dezabonare SMS reușită');
-    } catch (error) {
-      console.error('OneSignal SMS unsubscription error:', error);
-      toast.error('Eroare la dezabonare. Încercați din nou.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // înlocuiește complet funcția de dezabonare SMS
+const handleSmsUnsubscribe = async () => {
+  setIsLoading(true);
+  try {
+    await oneSignal.removeSms(phoneNumber.trim()); // <-- elimină din OneSignal
+    setSmsEnabled(false);
+    localStorage.setItem('sms_enabled', 'false');
+    toast.success('Dezabonare SMS reușită');
+  } catch (error) {
+    console.error('OneSignal SMS unsubscription error:', error);
+    toast.error('Eroare la dezabonare. Încercați din nou.');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -216,17 +214,20 @@ export function NotificationSettings() {
     }
   };
 
-  const handleEmailUnsubscribe = () => {
-    setIsLoading(true);
-    
-    setTimeout(() => {
-      setIsEmailSubscribed(false);
-      localStorage.setItem('email_enabled', 'false');
-      toast.success('Email dezactivat pentru alerte.');
-      setIsLoading(false);
-    }, 500);
-  };
-
+  const handleEmailUnsubscribe = async () => {
+  setIsLoading(true);
+  try {
+    await oneSignal.removeEmail(emailAddress.trim()); // <-- elimină din OneSignal
+    setIsEmailSubscribed(false);
+    localStorage.setItem('email_enabled', 'false');
+    toast.success('Email dezactivat pentru alerte.');
+  } catch (error) {
+    console.error('OneSignal email unsubscription error:', error);
+    toast.error('Eroare la dezactivare email. Încercați din nou.');
+  } finally {
+    setIsLoading(false);
+  }
+};
   const maskEmail = (email: string): string => {
     if (!email || !email.includes('@')) return email;
     
