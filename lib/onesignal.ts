@@ -1,8 +1,8 @@
 // lib/onesignal.ts
-// Wrapper pentru OneSignal Web SDK v16, păstrând API-ul tău existent.
-// NOTĂ: Folosește NEXT_PUBLIC_ONESIGNAL_APP_ID pe client.
+// Wrapper pentru OneSignal Web SDK v16 care NU mai augmentă global Window.OneSignal,
+// ca să evităm conflictele de tipuri la build.
 
-type OneSignalGlobal = {
+type OS = {
   init: (opts: { appId: string }) => Promise<void>;
   Debug?: { setLogLevel?: (lvl: 'trace' | 'debug' | 'info' | 'warn' | 'error') => void };
   Notifications: {
@@ -28,20 +28,20 @@ type OneSignalGlobal = {
   };
 };
 
-declare global {
-  interface Window {
-    OneSignal?: OneSignalGlobal;
-    OneSignalDeferred: ((OneSignal: OneSignalGlobal) => void)[];
+// NU mai augmentăm `interface Window` cu `OneSignal`.
+// Dacă vrei, poți păstra doar OneSignalDeferred, dar nici asta nu e obligatoriu.
+// Prefer generic 'any' pentru compatibilitate 100%.
+
+function onReady(): Promise<OS> {
+  if (typeof window === 'undefined') {
+    return Promise.reject(new Error('OneSignal este disponibil doar în browser.'));
   }
-}
-
-// -- utilitare interne --
-
-function onReady(): Promise<OneSignalGlobal> {
-  return new Promise((resolve) => {
-    if (typeof window === 'undefined') return;
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push((OneSignal) => resolve(OneSignal));
+  return new Promise<OS>((resolve) => {
+    const w = window as any;
+    w.OneSignalDeferred = w.OneSignalDeferred || [];
+    w.OneSignalDeferred.push((OneSignal: any) => {
+      resolve(OneSignal as OS);
+    });
   });
 }
 
@@ -49,93 +49,74 @@ function toE164(input: string) {
   return (input || '').replace(/[^\d+]/g, '');
 }
 
-async function ensureInit(): Promise<OneSignalGlobal> {
-  const os = await onReady();
-  // OneSignalInit.tsx deja face init; aici doar ne asigurăm că OneSignal există
-  return os;
-}
-
-// -- API public (menținând numele deja folosite în UI) --
-
 export const oneSignal = {
   async initialize(): Promise<void> {
-    await ensureInit();
+    await onReady(); // OneSignalInit.tsx face deja init; aici doar așteptăm instanța.
   },
 
   async isSubscribed(): Promise<boolean> {
-    const os = await ensureInit();
+    const os = await onReady();
     return !!os.User?.PushSubscription?.optedIn;
   },
 
   async subscribe(): Promise<boolean> {
-    const os = await ensureInit();
-
-    // dacă browserul nu suportă push, întoarce false
+    const os = await onReady();
     if (!os.Notifications?.isPushSupported?.()) return false;
-
-    // opțional: cere promptul nativ (optIn îl poate lansa oricum la nevoie)
     try {
       await os.Notifications.requestPermission();
-    } catch {}
-
+    } catch {
+      // ignorăm
+    }
     await os.User.PushSubscription.optIn();
     return !!os.User.PushSubscription.optedIn;
   },
 
   async unsubscribe(): Promise<boolean> {
-    const os = await ensureInit();
+    const os = await onReady();
     await os.User.PushSubscription.optOut();
     return !os.User.PushSubscription.optedIn;
   },
 
-  // --------- EMAIL ---------
+  // --- Email ---
   async setEmail(email: string): Promise<void> {
-    const os = await ensureInit();
+    const os = await onReady();
     const value = (email || '').trim();
     if (!value) throw new Error('Email gol');
     await os.User.addEmail(value);
   },
-
   async removeEmail(email: string): Promise<void> {
-    const os = await ensureInit();
+    const os = await onReady();
     const value = (email || '').trim();
     if (!value) throw new Error('Email gol');
     await os.User.removeEmail(value);
   },
 
-  // --------- SMS ---------
+  // --- SMS ---
   async setSMSNumber(phone: string): Promise<void> {
-    const os = await ensureInit();
+    const os = await onReady();
     const e164 = toE164(phone);
-    if (!e164.startsWith('+')) throw new Error('Telefonul trebuie în format E.164 (ex: +40712345678)');
+    if (!e164.startsWith('+')) {
+      throw new Error('Telefonul trebuie în format E.164 (ex: +40712345678)');
+    }
     await os.User.addSms(e164);
   },
-
   async removeSms(phone: string): Promise<void> {
-    const os = await ensureInit();
+    const os = await onReady();
     const e164 = toE164(phone);
     if (!e164) throw new Error('Telefon lipsă');
     await os.User.removeSms(e164);
   },
 
-  // --------- Tags & profil minim ----------
+  // --- Tag-uri / profil minim (opțional) ---
   async configureUser(opts: { email?: string; phoneNumber?: string; location?: string }) {
-    const os = await ensureInit();
-
-    if (opts.email) {
-      await this.setEmail(opts.email);
-    }
-    if (opts.phoneNumber) {
-      await this.setSMSNumber(opts.phoneNumber);
-    }
-    if (opts.location && os.User.addTags) {
-      await os.User.addTags({ location: opts.location });
-    }
+    const os = await onReady();
+    if (opts.email) await this.setEmail(opts.email);
+    if (opts.phoneNumber) await this.setSMSNumber(opts.phoneNumber);
+    if (opts.location && os.User.addTags) await os.User.addTags({ location: opts.location });
   },
 
-  // --------- Test server function ----------
+  // --- Test function server-side ---
   async sendTestNotification(): Promise<void> {
-    // apel simplu către funcția Netlify existentă (ignorat dacă nu folosește 'mode')
     await fetch('/.netlify/functions/send-alerts-onesignal', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
