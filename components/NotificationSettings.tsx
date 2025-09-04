@@ -161,13 +161,12 @@ export function NotificationSettings() {
     }
   };
 
+  // ✅ DEZABONARE SMS (v16)
   const handleSmsUnsubscribe = async () => {
     setIsLoading(true);
-
     try {
-      // Șterge numărul SMS din serviciul de notificări
-      await oneSignal.setSMSNumber('');
-      
+      // Elimină subscripția SMS din OneSignal (v16)
+      await oneSignal.removeSms(phoneNumber.trim());
       setSmsEnabled(false);
       localStorage.setItem('sms_enabled', 'false');
       toast.success('Dezabonare SMS reușită');
@@ -216,15 +215,21 @@ export function NotificationSettings() {
     }
   };
 
-  const handleEmailUnsubscribe = () => {
+  // ✅ DEZABONARE EMAIL (v16)
+  const handleEmailUnsubscribe = async () => {
     setIsLoading(true);
-    
-    setTimeout(() => {
+    try {
+      // Elimină subscripția Email din OneSignal (v16)
+      await oneSignal.removeEmail(emailAddress.trim());
       setIsEmailSubscribed(false);
       localStorage.setItem('email_enabled', 'false');
       toast.success('Email dezactivat pentru alerte.');
+    } catch (error) {
+      console.error('OneSignal email unsubscription error:', error);
+      toast.error('Eroare la dezactivare email. Încercați din nou.');
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   const maskEmail = (email: string): string => {
@@ -234,11 +239,13 @@ export function NotificationSettings() {
     if (localPart.length <= 2) return email;
     
     // Păstrează primele 2 caractere și ultimele 2 caractere din partea locală
-    const maskedLocal = localPart.substring(0, 2) + '*'.repeat(Math.max(localPart.length - 4, 1)) + localPart.substring(localPart.length - 2);
+    const maskedLocal =
+      localPart.substring(0, 2) + '*'.repeat(Math.max(localPart.length - 4, 1)) + localPart.substring(localPart.length - 2);
     
     // Pentru domeniu, păstrează doar prima literă și restul după punct
     const [domainName, ...domainExtension] = domain.split('.');
-    const maskedDomain = domainName.charAt(0) + '*'.repeat(Math.max(domainName.length - 1, 1)) + '.' + domainExtension.join('.');
+    const maskedDomain =
+      domainName.charAt(0) + '*'.repeat(Math.max(domainName.length - 1, 1)) + '.' + domainExtension.join('.');
     
     return `${maskedLocal}@${maskedDomain}`;
   };
