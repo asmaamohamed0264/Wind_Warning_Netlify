@@ -16,8 +16,8 @@ type OneSignalGlobal = {
 
 declare global {
   interface Window {
-    OneSignal?: OneSignalGlobal;
-    OneSignalDeferred: ((OneSignal: OneSignalGlobal) => void)[];
+    OneSignal?: any;
+    OneSignalDeferred?: any[];
   }
 }
 
