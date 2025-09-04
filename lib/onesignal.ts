@@ -133,13 +133,39 @@ export const oneSignal = {
     }
   },
 
-  // --------- Test server function ----------
-  async sendTestNotification(): Promise<void> {
-    // apel simplu către funcția Netlify existentă (ignorat dacă nu folosește 'mode')
-    await fetch('/.netlify/functions/send-alerts-onesignal', {
+ // lib/onesignal.ts
+
+export async function sendServerTestNotification() {
+  try {
+    const res = await fetch('/api/send-alerts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode: 'test' }),
+      body: JSON.stringify({
+        // payload sigur, trece orice validare veche din funcția Netlify
+        level: 'caution',
+        windSpeed: 50, // > 0 ca să nu dea 400 la validările vechi
+        time: new Date().toISOString(),
+        title: 'Test Alerte Vânt',
+        message: '🔔 Notificare de test (Wind Alert)',
+      }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`send-alerts responded ${res.status}: ${text}`);
+    }
+
+    // poate fi 204 sau 200; nu ne bazăm pe json
+    try {
+      return await res.json();
+    } catch {
+      return null;
+    }
+  } catch (err) {
+    console.error('sendServerTestNotification failed', err);
+    throw err;
+  }
+}
     });
   },
 };
