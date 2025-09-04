@@ -130,20 +130,19 @@ export const oneSignal = {
     }
     if (opts.location && os.User.addTags) {
       await os.User.addTags({ location: opts.location });
-    }
+  }
   },
+}; // <<< ÎNCHIDEM obiectul aici
 
- // lib/onesignal.ts
-
+// ---- Helper de test prin funcția Netlify (export separat) ----
 export async function sendServerTestNotification() {
   try {
     const res = await fetch('/api/send-alerts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        // payload sigur, trece orice validare veche din funcția Netlify
         level: 'caution',
-        windSpeed: 50, // > 0 ca să nu dea 400 la validările vechi
+        windSpeed: 50, // > 0 ca să treacă validările vechi
         time: new Date().toISOString(),
         title: 'Test Alerte Vânt',
         message: '🔔 Notificare de test (Wind Alert)',
@@ -155,9 +154,8 @@ export async function sendServerTestNotification() {
       throw new Error(`send-alerts responded ${res.status}: ${text}`);
     }
 
-    // poate fi 204 sau 200; nu ne bazăm pe json
     try {
-      return await res.json();
+      return await res.json(); // poate lipsi
     } catch {
       return null;
     }
@@ -166,6 +164,3 @@ export async function sendServerTestNotification() {
     throw err;
   }
 }
-    });
-  },
-};
