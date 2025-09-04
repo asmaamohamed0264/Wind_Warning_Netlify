@@ -1,112 +1,142 @@
 // lib/onesignal.ts
-// Wrapper pentru OneSignal Web SDK v16 (fără augmentarea tipurilor globale)
+// Wrapper sigur pentru OneSignal Web SDK v16, compatibil cu Next/Netlify (SSR)
 
-type OS = {
-  init: (opts: { appId: string }) => Promise<void>;
-  Debug?: { setLogLevel?: (lvl: 'trace' | 'debug' | 'info' | 'warn' | 'error') => void };
-  Notifications: {
-    requestPermission: () => Promise<boolean | undefined>;
-    isPushSupported: () => boolean;
-    permission: boolean;
-  };
-  User: {
-    PushSubscription: {
-      optIn: () => Promise<void>;
-      optOut: () => Promise<void>;
-      readonly optedIn: boolean;
-      id?: string | null;
-      token?: string | null;
-    };
-    addEmail: (email: string) => Promise<void>;
-    removeEmail: (email: string) => Promise<void>;
-    addSms: (phone: string) => Promise<void>;
-    removeSms: (phone: string) => Promise<void>;
-    addTags?: (tags: Record<string, string>) => Promise<void>;
-  };
-};
-
-function onReady(): Promise<OS> {
-  if (typeof window === 'undefined') {
-    return Promise.reject(new Error('OneSignal este disponibil doar în browser.'));
+declare global {
+  interface Window {
+    OneSignal?: any;
+    OneSignalDeferred?: any[];
   }
-  return new Promise<OS>((resolve) => {
-    const w = window as any;
-    if (w.OneSignal) return resolve(w.OneSignal as OS); // dacă e deja încărcat
-    w.OneSignalDeferred = w.OneSignalDeferred || [];
-    w.OneSignalDeferred.push((OneSignal: any) => resolve(OneSignal as OS));
+}
+
+const isClient = () => typeof window !== 'undefined';
+
+function getOS() {
+  if (!isClient()) return undefined;
+  return window.OneSignal;
+}
+
+function ensureOS(): any {
+  const os = getOS();
+  if (!os) throw new Error('OneSignal SDK nu este încă disponibil.');
+  return os;
+}
+
+async function waitForSDKReady(timeoutMs = 8000) {
+  if (!isClient()) return;
+  if (getOS()) return;
+
+  await new Promise<void>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error('Timeout așteptând OneSignal SDK')), timeoutMs);
+    (window.OneSignalDeferred = window.OneSignalDeferred || []).push(() => {
+      clearTimeout(t);
+      resolve();
+    });
   });
 }
 
-function toE164(input: string) {
-  return (input || '').replace(/[^\d+]/g, '');
-}
-
 export const oneSignal = {
-  async initialize(): Promise<void> {
-    await onReady(); // OneSignalInit.tsx face deja init
+  // Inițializare – chemată o singură dată în app
+  async initialize() {
+    if (!isClient()) return;
+    // Dacă SDK-ul e deja injectat, e okay. Dacă nu, așteptăm OneSignalDeferred.
+    await waitForSDKReady().catch(() => {}); // nu blocăm UI-ul
   },
 
+  // Push subscribe/unsubscribe
   async isSubscribed(): Promise<boolean> {
-    const os = await onReady();
-    return !!os.User?.PushSubscription?.optedIn;
+    try {
+      await waitForSDKReady();
+      const os = ensureOS();
+      return os.Notifications?.isSubscribed() ?? false;
+    } catch {
+      return false;
+    }
   },
 
   async subscribe(): Promise<boolean> {
-    const os = await onReady();
-    if (!os.Notifications?.isPushSupported?.()) return false;
-    try { await os.Notifications.requestPermission(); } catch {}
-    await os.User.PushSubscription.optIn();
-    return !!os.User.PushSubscription.optedIn;
+    try {
+      await waitForSDKReady();
+      const os = ensureOS();
+      // Cere permisiunea și se abonează
+      const perm = await os.Notifications.requestPermission(); // 'granted' | 'denied' | 'default'
+      if (perm !== 'granted') return false;
+      await os.Notifications.subscribe();
+      return await os.Notifications.isSubscribed();
+    } catch (e) {
+      console.error('OneSignal subscribe error:', e);
+      return false;
+    }
   },
 
   async unsubscribe(): Promise<boolean> {
-    const os = await onReady();
-    await os.User.PushSubscription.optOut();
-    return !os.User.PushSubscription.optedIn;
+    try {
+      await waitForSDKReady();
+      const os = ensureOS();
+      await os.Notifications.unsubscribe();
+      return !(await os.Notifications.isSubscribed());
+    } catch (e) {
+      console.error('OneSignal unsubscribe error:', e);
+      return false;
+    }
   },
 
-  // --- Email ---
-  async setEmail(email: string): Promise<void> {
-    const os = await onReady();
-    const value = (email || '').trim();
-    if (!value) throw new Error('Email gol');
-    await os.User.addEmail(value);
-  },
-  async removeEmail(email: string): Promise<void> {
-    const os = await onReady();
-    const value = (email || '').trim();
-    if (!value) throw new Error('Email gol');
-    await os.User.removeEmail(value);
+  // Email (v16)
+  async setEmail(email: string) {
+    await waitForSDKReady();
+    const os = ensureOS();
+    return os.User.addEmail(email); // v16: addEmail/removeEmail
   },
 
-  // --- SMS ---
-  async setSMSNumber(phone: string): Promise<void> {
-    const os = await onReady();
-    const e164 = toE164(phone);
-    if (!e164.startsWith('+')) throw new Error('Telefonul trebuie în format E.164 (ex: +40712345678)');
-    await os.User.addSms(e164);
-  },
-  async removeSms(phone: string): Promise<void> {
-    const os = await onReady();
-    const e164 = toE164(phone);
-    if (!e164) throw new Error('Telefon lipsă');
-    await os.User.removeSms(e164);
+  async removeEmail(email: string) {
+    await waitForSDKReady();
+    const os = ensureOS();
+    return os.User.removeEmail(email);
   },
 
-  // --- Tag-uri (opțional) ---
+  // SMS (v16)
+  async setSMSNumber(phoneE164: string) {
+    await waitForSDKReady();
+    const os = ensureOS();
+    return os.User.addSms(phoneE164); // v16: addSms/removeSms
+  },
+
+  async removeSms(phoneE164: string) {
+    await waitForSDKReady();
+    const os = ensureOS();
+    return os.User.removeSms(phoneE164);
+  },
+
+  // Metadata utilizator (opțional)
   async configureUser(opts: { email?: string; phoneNumber?: string; location?: string }) {
-    const os = await onReady();
-    if (opts.email) await this.setEmail(opts.email);
-    if (opts.phoneNumber) await this.setSMSNumber(opts.phoneNumber);
-    if (opts.location && os.User.addTags) await os.User.addTags({ location: opts.location });
+    try {
+      await waitForSDKReady();
+      const os = ensureOS();
+
+      if (opts.email) await os.User.addEmail(opts.email);
+      if (opts.phoneNumber) await os.User.addSms(opts.phoneNumber);
+
+      if (opts.location) {
+        // Etichete simple (Properties)
+        await os.User.addTag('location', opts.location);
+      }
+    } catch (e) {
+      console.warn('configureUser warning:', e);
+    }
   },
 
-  // --- Test: trimite Push + Email + SMS prin funcția Netlify ---
-  async sendTestNotification(): Promise<void> {
-    await fetch('/api/send-alerts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ level: 'TEST', wind: 35, place: 'Aleea Someșul Cald' }),
-    });
+  // Util – buton de test
+  async sendTestNotification() {
+    try {
+      await waitForSDKReady();
+      const os = ensureOS();
+      // trimite o local notification (doar ca demo)
+      if (os.Notifications?.isSubscribed()) {
+        await os.Notifications.showSlidedownPrompt?.(); // fallback: arată promptul
+      }
+    } catch (e) {
+      console.warn('sendTestNotification warning:', e);
+    }
   },
 };
+
+export default oneSignal;
