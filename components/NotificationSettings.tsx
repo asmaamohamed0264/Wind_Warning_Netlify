@@ -229,24 +229,28 @@ const handleSmsUnsubscribe = async () => {
     setIsLoading(false);
   }
 };
-  const maskEmail = (email: string): string => {
-    if (!email || !email.includes('@')) return email;
-    
-    const [localPart, domain] = email.split('@');
-    if (localPart.length <= 2) return email;
-    
-    // Păstrează primele 2 caractere și ultimele 2 caractere din partea locală
-    const maskedLocal = localPart.substring(0, 2) + '*'.repeat(Math.max(localPart.length - 4, 1)) + localPart.substring(localPart.length - 2);
-    
-    // Pentru domeniu, păstrează doar prima literă și restul după punct
-    const [domainName, ...domainExtension] = domain.split('.');
-    const maskedDomain = domainName.charAt(0) + '*'.repeat(Math.max(domainName.length - 1, 1)) + '.' + domainExtension.join('.');
-    
-    return `${maskedLocal}@${maskedDomain}`;
-  };
+ const maskEmail = (email: string): string => {
+  if (!email || !email.includes('@')) return email;
+  const [localPart, domain] = email.split('@');
+  if (localPart.length <= 2) return email;
 
-  return (
-    <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700">
+  const maskedLocal =
+    localPart.substring(0, 2) +
+    '*'.repeat(Math.max(localPart.length - 4, 1)) +
+    localPart.substring(localPart.length - 2);
+
+  const [domainName, ...domainExtension] = domain.split('.');
+  const maskedDomain =
+    domainName.charAt(0) +
+    '*'.repeat(Math.max(domainName.length - 1, 1)) +
+    '.' +
+    domainExtension.join('.');
+
+  return `${maskedLocal}@${maskedDomain}`;
+}; // <<< asta lipsea
+
+return (
+  <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700">
       <CardHeader>
         <CardTitle className="flex items-center text-lg">
           <img src="/1000088934-modified.png" alt="Notificări" className="mr-2 h-5 w-5" />
