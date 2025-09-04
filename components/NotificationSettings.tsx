@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Bell, Smartphone, Mail, Check, X, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { sendServerTestNotification } from '@/lib/onesignal';
 
 export function NotificationSettings() {
   const [pushEnabled, setPushEnabled] = useState(false);
@@ -428,8 +429,7 @@ const handleSmsUnsubscribe = async () => {
         {/* Test Notification Button */}
         {pushEnabled && (
           <div className="pt-4 border-t border-gray-700">
-           import { sendServerTestNotification } from '@/lib/onesignal';
-
+          
 <Button
   onClick={() => sendServerTestNotification()}
   /* ... */
