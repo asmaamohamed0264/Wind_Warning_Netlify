@@ -21,24 +21,18 @@ export function NotificationSettings() {
   const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
 
   useEffect(() => {
-    // Verifică dacă suntem pe client
     if (typeof window === 'undefined') {
       return;
     }
     
-    // Inițializează OneSignal și verifică starea
     const initOneSignal = async () => {
-      // Încearcă inițializarea SDK; dacă eșuează, nu blocăm UI-ul
       await oneSignal.initialize();
-      // Detectare suport minim (browser cu Notifications + ServiceWorker)
       const supported = typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator;
       setPushSupported(supported);
       
-      // Verifică dacă utilizatorul este abonat
       const isSubscribed = await oneSignal.isSubscribed();
       setPushEnabled(isSubscribed);
       
-      // Verifică permisiunea pentru notificări
       if ('Notification' in window) {
         setPushPermission(Notification.permission);
       }
@@ -46,7 +40,6 @@ export function NotificationSettings() {
 
     initOneSignal();
 
-    // Load saved SMS preferences
     const savedPhone = localStorage.getItem('sms_phone_number');
     const savedSmsEnabled = localStorage.getItem('sms_enabled') === 'true';
     
@@ -55,7 +48,6 @@ export function NotificationSettings() {
       setSmsEnabled(savedSmsEnabled);
     }
 
-    // Load saved Email preferences
     const savedEmail = localStorage.getItem('email_address');
     const savedEmailEnabled = localStorage.getItem('email_enabled') === 'true';
     if (savedEmail) {
@@ -80,7 +72,6 @@ export function NotificationSettings() {
           setPushEnabled(true);
           toast.success('Notificările push au fost activate cu succes!');
           
-          // Configurează utilizatorul cu date existente
           await oneSignal.configureUser({
             email: emailAddress || undefined,
             phoneNumber: phoneNumber || undefined,
@@ -114,9 +105,8 @@ export function NotificationSettings() {
   };
 
   const validatePhoneNumber = (phone: string): boolean => {
-    // Acceptăm DOAR formatul românesc cu prefix de țară +40, ex: +40712345678
     const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
-    const roE164 = /^\+40\d{9}$/; // +40 urmat de 9 cifre
+    const roE164 = /^\+40\d{9}$/;
     const ok = roE164.test(cleanPhone);
     console.log('Phone validation:', { original: phone, cleaned: cleanPhone, ok });
     return ok;
@@ -138,14 +128,12 @@ export function NotificationSettings() {
     setIsLoading(true);
 
     try {
-      // Configurează SMS în serviciul de notificări
       await oneSignal.setSMSNumber(trimmedPhone);
       
       setSmsEnabled(true);
       localStorage.setItem('sms_phone_number', trimmedPhone);
       localStorage.setItem('sms_enabled', 'true');
       
-      // Configurează utilizatorul complet
       await oneSignal.configureUser({
         email: emailAddress || undefined,
         phoneNumber: trimmedPhone,
@@ -161,21 +149,22 @@ export function NotificationSettings() {
     }
   };
 
-  // ✅ DEZABONARE SMS (v16)
+  // ✅ DEZABONARE SMS (v16 corectat)
   const handleSmsUnsubscribe = async () => {
-  setIsLoading(true);
-  try {
-    await oneSignal.removeSms(phoneNumber.trim());
-    setSmsEnabled(false);
-    localStorage.setItem('sms_enabled', 'false');
-    toast.success('Dezabonare SMS reușită');
-  } catch (error) {
-    console.error('OneSignal SMS unsubscription error:', error);
-    toast.error('Eroare la dezabonare. Încercați din nou.');
-  } finally {
-    setIsLoading(false);
-  }
-};
+    setIsLoading(true);
+    try {
+      await oneSignal.logoutSMS();
+      setSmsEnabled(false);
+      localStorage.removeItem('sms_phone_number');
+      localStorage.setItem('sms_enabled', 'false');
+      toast.success('Dezabonare SMS reușită');
+    } catch (error) {
+      console.error('OneSignal SMS unsubscription error:', error);
+      toast.error('Eroare la dezabonare SMS. Încercați din nou.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -191,14 +180,12 @@ export function NotificationSettings() {
     setIsLoading(true);
     
     try {
-      // Configurează email în serviciul de notificări
       await oneSignal.setEmail(emailAddress.trim());
       
       setIsEmailSubscribed(true);
       localStorage.setItem('email_address', emailAddress.trim());
       localStorage.setItem('email_enabled', 'true');
       
-      // Configurează utilizatorul complet
       await oneSignal.configureUser({
         email: emailAddress.trim(),
         phoneNumber: phoneNumber || undefined,
@@ -214,21 +201,22 @@ export function NotificationSettings() {
     }
   };
 
-  // ✅ DEZABONARE EMAIL (v16)
+  // ✅ DEZABONARE EMAIL (v16 corectat)
   const handleEmailUnsubscribe = async () => {
-  setIsLoading(true);
-  try {
-    await oneSignal.removeEmail(emailAddress.trim());
-    setIsEmailSubscribed(false);
-    localStorage.setItem('email_enabled', 'false');
-    toast.success('Email dezactivat pentru alerte.');
-  } catch (error) {
-    console.error('OneSignal email unsubscription error:', error);
-    toast.error('Eroare la dezactivare email. Încercați din nou.');
-  } finally {
-    setIsLoading(false);
-  }
-};
+    setIsLoading(true);
+    try {
+      await oneSignal.logoutEmail();
+      setIsEmailSubscribed(false);
+      localStorage.removeItem('email_address');
+      localStorage.setItem('email_enabled', 'false');
+      toast.success('Email dezactivat pentru alerte.');
+    } catch (error) {
+      console.error('OneSignal email unsubscription error:', error);
+      toast.error('Eroare la dezactivare email. Încercați din nou.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const maskEmail = (email: string): string => {
     if (!email || !email.includes('@')) return email;
@@ -236,11 +224,9 @@ export function NotificationSettings() {
     const [localPart, domain] = email.split('@');
     if (localPart.length <= 2) return email;
     
-    // Păstrează primele 2 caractere și ultimele 2 caractere din partea locală
     const maskedLocal =
       localPart.substring(0, 2) + '*'.repeat(Math.max(localPart.length - 4, 1)) + localPart.substring(localPart.length - 2);
     
-    // Pentru domeniu, păstrează doar prima literă și restul după punct
     const [domainName, ...domainExtension] = domain.split('.');
     const maskedDomain =
       domainName.charAt(0) + '*'.repeat(Math.max(domainName.length - 1, 1)) + '.' + domainExtension.join('.');
@@ -269,7 +255,6 @@ export function NotificationSettings() {
             <Switch
               checked={pushEnabled}
               onCheckedChange={handlePushToggle}
-              // Nu mai dezactivăm total; gestionăm erorile în handlePushToggle
               disabled={isLoading}
             />
           </div>
