@@ -466,5 +466,9 @@ return (
     >
       🧪 Trimite Notificare de Test
     </Button>
-  </div>
-)}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
