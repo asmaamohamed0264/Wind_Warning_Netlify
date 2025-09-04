@@ -1,7 +1,7 @@
 // netlify/functions/send-alerts-onesignal.ts
 import type { Handler } from '@netlify/functions';
 
-// === Config din environment (Netlify injectează env-urile la build/runtime) ===
+// === Config din environment (Netlify le injectează la build/runtime) ===
 const APP_ID: string =
   process.env.VITE_ONESIGNAL_APP_ID ??
   process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID ??
@@ -14,16 +14,15 @@ const ALLOWED_ORIGIN: string = process.env.ALLOWED_ORIGIN ?? '*';
 const EMAIL_FROM_NAME: string = process.env.EMAIL_FROM_NAME ?? 'Wind Alert';
 const EMAIL_FROM_ADDRESS: string | undefined = process.env.EMAIL_FROM_ADDRESS; // ex: alerts@domeniu.ro
 
-// Prefer OneSignal SMS sender; dacă lipsește, folosește Twilio sender dacă există
+// Preferă OneSignal sender; dacă lipsește, folosește Twilio sender (dacă există)
 const SMS_FROM: string | undefined =
   process.env.ONESIGNAL_SMS_FROM ?? process.env.TWILIO_PHONE_NUMBER;
 
-// REST endpoint OneSignal
+// OneSignal REST endpoint
 const OS_URL = 'https://onesignal.com/api/v1/notifications';
 
 // === Utilitare ===
 function corsHeaders(origin: string) {
-  // dacă pui un origin specific, îl întoarcem ca atare; altfel '*'
   const allowOrigin = origin === '*' ? '*' : origin;
   return {
     'Access-Control-Allow-Origin': allowOrigin,
@@ -44,9 +43,7 @@ async function osRequest(payload: unknown) {
   });
 
   const json = await res.json().catch(() => ({} as any));
-  if (!res.ok) {
-    throw new Error(`${res.status} ${res.statusText} – ${JSON.stringify(json)}`);
-  }
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText} – ${JSON.stringify(json)}`);
   return json;
 }
 
@@ -73,7 +70,7 @@ export const handler: Handler = async (event) => {
   try {
     assertRuntimeConfig();
 
-    // Parse body
+    // Body
     const body = event.body ? JSON.parse(event.body) : {};
     const level = String(body.level ?? 'TEST').toUpperCase(); // TEST | CAUTION | WARNING | DANGER
     const wind = Number(body.wind ?? 35);
@@ -82,7 +79,7 @@ export const handler: Handler = async (event) => {
     const title = `Alertă vânt – ${level}`;
     const text = `Vânt ${Number.isFinite(wind) ? wind : 0} km/h în ${place}.`;
 
-    // Securitate minimă: dacă lipsesc cheile esențiale, nu încercăm request-urile
+    // Dacă lipsesc cheile esențiale, răspunde 500 (nu dărâma build-ul)
     if (!APP_ID || !API_KEY) {
       return {
         statusCode: 500,
@@ -109,7 +106,7 @@ export const handler: Handler = async (event) => {
     await osRequest({
       app_id: APP_ID,
       included_segments: ['Total Subscriptions'],
-      // Filtrăm doar dispozitivele tip email
+      // trimite doar către abonamente email
       filters: [{ field: 'device_type', relation: '=', value: 'email' }],
       target_channel: 'email',
       email_subject: `【${level}】 ${text}`,
@@ -126,14 +123,14 @@ export const handler: Handler = async (event) => {
       ...(EMAIL_FROM_ADDRESS ? { email_from_address: EMAIL_FROM_ADDRESS } : {}),
     });
 
-    // 3) SMS – toți abonații sms (doar dacă avem un sender configurat)
+    // 3) SMS – toți abonații sms (dacă avem sender)
     if (SMS_FROM) {
       await osRequest({
         app_id: APP_ID,
         included_segments: ['Total Subscriptions'],
         filters: [{ field: 'device_type', relation: '=', value: 'sms' }],
         target_channel: 'sms',
-        sms_from: SMS_FROM, // ex: +40712345678 sau număr OneSignal/Twilio configurat
+        sms_from: SMS_FROM,
         sms_body: `ALERTĂ VÂNT ${level}: ${wind} km/h în ${place}. Rămâneți în siguranță.`,
       });
     }
