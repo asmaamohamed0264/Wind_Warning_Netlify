@@ -428,14 +428,14 @@ const handleSmsUnsubscribe = async () => {
         {/* Test Notification Button */}
         {pushEnabled && (
           <div className="pt-4 border-t border-gray-700">
-            <Button
-              onClick={() => oneSignal.sendTestNotification()}
-              disabled={isLoading}
-              variant="outline"
-              className="w-full border-blue-600 text-blue-400 hover:bg-blue-900/20"
-            >
-              🧪 Trimite Notificare de Test
-            </Button>
+            import { sendServerTestNotification } from '@/lib/onesignal';
+
+              <Button
+                onClick={() => sendServerTestNotification()}
+                /* ... */
+                >
+                🧪 Trimite Notificare de Test
+              </Button>
           </div>
         )}
       </CardContent>
