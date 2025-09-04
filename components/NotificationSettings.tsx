@@ -427,18 +427,21 @@ const handleSmsUnsubscribe = async () => {
         </div>
         
         {/* Test Notification Button */}
-        {pushEnabled && (
-          <div className="pt-4 border-t border-gray-700">
-          
-<Button
-  onClick={() => sendServerTestNotification()}
-  /* ... */
->
-  🧪 Trimite Notificare de Test
-</Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
+     {pushEnabled && (
+  <div className="pt-4 border-t border-gray-700">
+    <Button
+      onClick={async () => {
+        try {
+          await sendServerTestNotification();
+          console.log('✅ Notificare de test trimisă');
+        } catch (e) {
+          console.error('❌ Eroare la trimitere', e);
+        }
+      }}
+      className="w-full mt-3"
+      variant="secondary"
+    >
+      🧪 Trimite Notificare de Test
+    </Button>
+  </div>
+)}
