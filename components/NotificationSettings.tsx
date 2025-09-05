@@ -1,5 +1,10 @@
 'use client';
-
+// shim pt. globalul injectat de SDK la runtime
+declare global {
+  interface Window {
+    OneSignal?: any;
+  }
+}
 import { useState, useEffect } from 'react';
 import { oneSignal } from '@/lib/onesignal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -275,16 +280,21 @@ export function NotificationSettings() {
           {/* Test Notification Button */}
           {pushEnabled && (
             <div className="pt-4 border-t border-gray-700">
-            <Button
+          <Button
   onClick={async () => {
     try {
-      const subId = await OneSignal.User.PushSubscription.id;
+      // @ts-expect-error OneSignal e injectat de SDK la runtime
+      const subId = await window.OneSignal?.User?.PushSubscription?.id;
+      if (!subId) {
+        toast.error('Nu ești abonat la push (subscriptionId lipsă).');
+        return;
+      }
 
       const res = await fetch('/.netlify/functions/sendTestPush', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          subscriptionId: subId,          // targetează browserul curent
+          subscriptionId: subId,
           title: 'Test alertă vânt',
           message: 'Level danger, Wind 32 km/h',
           url: 'https://wind.qub3.uk',
@@ -301,7 +311,7 @@ export function NotificationSettings() {
       toast.success('✅ Notificare de test trimisă prin OneSignal!');
     } catch (e) {
       console.error('❌ Eroare la trimitere', e);
-      toast.error('❌ Eroare la trimitere.');
+      toast.error('❌ Eroare neașteptată.');
     }
   }}
   className="w-full mt-3"
@@ -309,6 +319,7 @@ export function NotificationSettings() {
 >
   🧪 Trimite Notificare de Test
 </Button>
+
 
             </div>
           )}
