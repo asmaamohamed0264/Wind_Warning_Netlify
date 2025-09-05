@@ -16,10 +16,10 @@
   status = 200
 
 # Redirect pentru noua funcție OneSignal
-[[redirects]]
-  from = "/api/send-alerts"
-  to   = "/.netlify/functions/send-alerts-onesignal"
-  status = 200
+#[[redirects]]
+  #from = "/api/send-alerts"
+ # to   = "/.netlify/functions/send-alerts-onesignal"
+ # status = 200
 
 # Headere de securitate (toate paginile)
 [[headers]]
