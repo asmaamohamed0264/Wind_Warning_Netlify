@@ -15,11 +15,17 @@
   to   = "/.netlify/functions/:splat"
   status = 200
 
-# Redirect pentru noua funcție OneSignal
+# Redirect specific pentru testare OneSignal
+[[redirects]]
+  from = "/api/sendTestPush"
+  to   = "/.netlify/functions/sendTestPush"
+  status = 200
+
+# Redirect pentru noua funcție OneSignal (opțional, dacă vrei separare)
 #[[redirects]]
   #from = "/api/send-alerts"
- # to   = "/.netlify/functions/send-alerts-onesignal"
- # status = 200
+  #to   = "/.netlify/functions/send-alerts-onesignal"
+  #status = 200
 
 # Headere de securitate (toate paginile)
 [[headers]]
