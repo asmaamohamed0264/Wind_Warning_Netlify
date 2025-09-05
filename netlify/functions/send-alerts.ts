@@ -16,6 +16,10 @@ const getEnv = (key: string) => (
 const ONESIGNAL_API_KEY = getEnv('VITE_ONESIGNAL_API_KEY') || "";
 const ONESIGNAL_APP_ID = getEnv('VITE_ONESIGNAL_APP_ID') || "";
 const ALLOWED_ORIGIN = getEnv('ALLOWED_ORIGIN') || "*";
+const ONESIGNAL_SMS_FROM = getEnv('ONESIGNAL_SMS_FROM') || "";
+const APP_URL = getEnv('URL') || "https://wind.qub3.uk"; // fallback-ul tău
+const smsText = (p: { level:string; windSpeed:number; message:string }) =>
+  `[${formatAlertTitle(p.level, p.windSpeed)}] ${p.message}`.replace(/\s+/g, ' ').slice(0, 160);
 
 // CORS
 const CORS = {
@@ -173,10 +177,86 @@ export const handler: Handler = async (event) => {
   const wantEmail = !channelsInput || channelsInput.includes('email');
   const wantSMS = !channelsInput || channelsInput.includes('sms');
 
-  try {
-    // Construiește notificarea OneSignal
-    const notification = new OneSignal.Notification();
-    notification.app_id = ONESIGNAL_APP_ID;
+try {
+  const results: any[] = [];
+
+  // PUSH – către "Subscribed Users"
+  if (wantPush) {
+    const n = new OneSignal.Notification();
+    n.app_id = ONESIGNAL_APP_ID;
+    n.included_segments = ["Subscribed Users"];
+    n.headings = { en: formatAlertTitle(payload.level, payload.windSpeed) } as any;
+    n.contents = { en: payload.message } as any;
+
+    // setări vizuale pentru push
+    n.priority = config.priority;
+    n.android_accent_color = config.color;
+    n.chrome_web_badge = "/1000088934-modified.png";
+    n.chrome_web_icon = "/1000088934-modified.png";
+    n.firefox_icon = "/1000088934-modified.png";
+    n.url = APP_URL;
+
+    if (payload.level === "danger") {
+      n.android_sound = "alarm";
+      n.ios_sound = "alarm.wav";
+      n.android_led_color = "FFFF0000";
+      n.android_visibility = 1;
+    }
+
+    n.data = {
+      type: "wind_alert",
+      level: payload.level,
+      windSpeed: payload.windSpeed,
+      location: "Aleea Someșul Cald",
+      timestamp: payload.time,
+    };
+
+    results.push(onesignalClient.createNotification(n));
+  }
+
+  // EMAIL – către "Email Subscribed Users"
+  if (wantEmail && payload.level !== "normal") {
+    const n = new OneSignal.Notification();
+    n.app_id = ONESIGNAL_APP_ID;
+    n.included_segments = ["Email Subscribed Users"];
+    (n as any).target_channel = "email";
+
+    n.email_subject = formatAlertTitle(payload.level, payload.windSpeed);
+    n.email_body = generateEmailHTML(payload);
+
+    results.push(onesignalClient.createNotification(n));
+  }
+
+  // SMS – către "SMS Subscribed Users"
+  if (wantSMS && payload.level !== "normal") {
+    if (!ONESIGNAL_SMS_FROM) {
+      console.warn("ONESIGNAL_SMS_FROM lipsă – SMS nu se va trimite.");
+    } else {
+      const n = new OneSignal.Notification();
+      n.app_id = ONESIGNAL_APP_ID;
+      n.included_segments = ["SMS Subscribed Users"];
+      (n as any).target_channel = "sms";
+      (n as any).sms_from = ONESIGNAL_SMS_FROM;
+      n.contents = { en: smsText(payload) } as any;
+
+      results.push(onesignalClient.createNotification(n));
+    }
+  }
+
+  console.log(`Sending OneSignal: push=${wantPush} email=${wantEmail} sms=${wantSMS} (${payload.level} ${payload.windSpeed}km/h)`);
+
+  const responses = await Promise.all(results);
+
+  return json(200, {
+    ok: true,
+    provider: "OneSignal",
+    ids: responses.map((r: any) => r?.id ?? r?.data?.id ?? null),
+    level: payload.level,
+    windSpeed: payload.windSpeed,
+    message: "Alerts queued via OneSignal",
+  });
+} catch (err:
+
     
     // Conținut notificare Push (dacă e cerut)
     if (wantPush) {
