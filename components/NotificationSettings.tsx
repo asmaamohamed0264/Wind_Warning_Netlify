@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { oneSignal } from '@/lib/onesignal';
+import { oneSignal, sendServerTestNotification } from '@/lib/onesignal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -283,24 +283,13 @@ export function NotificationSettings() {
                       return;
                     }
 
-                    const res = await fetch('/.netlify/functions/sendTestPush', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        subscriptionId: subId,
-                        title: 'Test alertă vânt',
-                        message: 'Level danger, Wind 32 km/h',
-                        url: 'https://wind.qub3.uk',
-                      }),
+                    await sendServerTestNotification({
+                      include_subscription_ids: [subId],
+                      title: 'Test alertă vânt',
+                      message: 'Level danger, Wind 32 km/h',
+                      url: 'https://wind.qub3.uk',
                     });
 
-                    const data = await res.json().catch(() => ({}));
-                    if (!res.ok) {
-                      console.error('OneSignal test push error:', data);
-                      toast.error('❌ Trimiterea a eșuat.');
-                      return;
-                    }
-                    console.log('OneSignal test push OK:', data);
                     toast.success('✅ Notificare de test trimisă prin OneSignal!');
                   } catch (err) {
                     console.error('❌ Eroare la trimitere', err);
