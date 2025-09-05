@@ -275,20 +275,40 @@ export function NotificationSettings() {
           {/* Test Notification Button */}
           {pushEnabled && (
             <div className="pt-4 border-t border-gray-700">
-              <Button
-                onClick={async () => {
-                  try {
-                    await sendServerTestNotification();
-                    console.log('✅ Notificare de test trimisă');
-                  } catch (e) {
-                    console.error('❌ Eroare la trimitere', e);
-                  }
-                }}
-                className="w-full mt-3"
-                variant="secondary"
-              >
-                🧪 Trimite Notificare de Test
-              </Button>
+             <Button
+  onClick={async () => {
+    try {
+      // Construim payload-ul pentru funcția Netlify în funcție de ce ai configurat în UI
+      const channels: Array<'push' | 'email' | 'sms'> = ['push'];
+      const body: any = {
+        level: 'warning',
+        windSpeed: 30,
+        channels,
+      };
+
+      // dacă ai email introdus, trimitem și email
+      if (emailAddress.trim()) {
+        channels.push('email');
+        body.include_email_tokens = [emailAddress.trim()];
+      }
+
+      // dacă ai telefon introdus, trimitem și sms
+      if (phoneNumber.trim()) {
+        channels.push('sms');
+        body.include_phone_numbers = [phoneNumber.trim()];
+      }
+
+      await sendServerTestNotification(body);
+      console.log('✅ Notificare de test trimisă');
+    } catch (e) {
+      console.error('❌ Eroare la trimitere', e);
+    }
+  }}
+  className="w-full mt-3"
+  variant="secondary"
+>
+  🧪 Trimite Notificare de Test
+</Button>
             </div>
           )}
         </div>
