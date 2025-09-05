@@ -276,23 +276,32 @@ export function NotificationSettings() {
             <div className="pt-4 border-t border-gray-700">
               <Button
                 onClick={async () => {
+                  console.log('🐛 DEBUG: Test button clicked!');
+
                   try {
+                    console.log('🐛 DEBUG: Getting subscription ID...');
                     const subId = await window.OneSignal?.User?.PushSubscription?.id;
+                    console.log('🐛 DEBUG: Subscription ID:', subId);
+
                     if (!subId) {
-                      toast.error('Nu ești abonat la push (subscriptionId lipsă).');
+                      console.log('🐛 DEBUG: No subscription ID found');
+                      toast.error('Nu eștiabonat la push (subscriptionId lipsă).');
                       return;
                     }
 
-                    await sendServerTestNotification({
+                    console.log('🐛 DEBUG: Sending test notification to:', subId);
+                    const result = await sendServerTestNotification({
                       include_subscription_ids: [subId],
                       level: 'danger',
                       windSpeed: 32,
                     });
 
+                    console.log('🐛 DEBUG: Server response:', result);
                     toast.success('✅ Notificare de test trimisă prin OneSignal!');
-                  } catch (err) {
-                    console.error('❌ Eroare la trimitere', err);
-                    toast.error('❌ Eroare neașteptată.');
+
+                  } catch (err: any) {
+                    console.error('❌ Eroare la trimitere:', err);
+                    toast.error(`❌ Eroare: ${err?.message || 'Unknown error'}`);
                   }
                 }}
                 className="w-full mt-3"
