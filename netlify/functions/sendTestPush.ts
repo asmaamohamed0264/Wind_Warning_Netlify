@@ -3,7 +3,12 @@ import type { Handler } from '@netlify/functions';
 import * as OneSignal from '@onesignal/node-onesignal';
 
 type Req = {
-  subscriptionId?: string;
+  level?: 'caution' | 'warning' | 'danger';
+  windSpeed?: number;
+  channels?: Array<'push' | 'email' | 'sms'>;
+  include_subscription_ids?: string[];
+  include_email_tokens?: string[];
+  include_phone_numbers?: string[];
   title?: string;
   message?: string;
   url?: string;
@@ -56,17 +61,22 @@ export const handler: Handler = async (event) => {
     };
   }
 
-  const { subscriptionId, title, message, url } = body;
+  const { level, windSpeed, include_subscription_ids, include_email_tokens, include_phone_numbers, title, message, url } = body;
 
   // Construiește notificarea de test
   const notification = new OneSignal.Notification();
   notification.app_id = APP_ID;
-  notification.headings = { en: title || 'Test alertă vânt' };
-  notification.contents = { en: message || 'Level danger, Wind 32 km/h' };
+  notification.headings = { en: title || `Test alertă ${level || 'vânt'}` };
+  notification.contents = { en: message || `${level || 'danger'} - Vânt de ${windSpeed || 32} km/h detectat. Test notificare!` };
   notification.url = url || 'https://wind.qub3.uk';
 
-  if (subscriptionId) {
-    notification.include_subscription_ids = [subscriptionId];
+  // Handle targeted notifications
+  if (include_subscription_ids?.length) {
+    notification.include_subscription_ids = include_subscription_ids;
+  } else if (include_email_tokens?.length) {
+    notification.include_email_tokens = include_email_tokens;
+  } else if (include_phone_numbers?.length) {
+    notification.include_phone_numbers = include_phone_numbers;
   } else {
     notification.included_segments = ['Subscribed Users'];
   }
