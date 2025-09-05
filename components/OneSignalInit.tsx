@@ -5,15 +5,17 @@ import { useEffect } from 'react';
 
 export default function OneSignalInit() {
   useEffect(() => {
-    // ne asigurăm că există coada
     (window as any).OneSignalDeferred = (window as any).OneSignalDeferred || [];
 
     (window as any).OneSignalDeferred.push(async (OneSignal: any) => {
       try {
         await OneSignal.init({
-          appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!, // vezi pasul 4
+          appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!,
+          serviceWorkerPath: '/OneSignalSDKWorker.js', // Calea explicită
+          serviceWorkerUpdaterPath: '/OneSignalSDKUpdaterWorker.js',
+          allowLocalhostAsSecureOrigin: process.env.NODE_ENV === 'development', // Pentru test local
         });
-        OneSignal.Debug?.setLogLevel?.('info'); // opțional: loguri
+        OneSignal.Debug?.setLogLevel?.('info');
         console.log('[OneSignal] init OK');
       } catch (err) {
         console.error('[OneSignal] init error', err);
