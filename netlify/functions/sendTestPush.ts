@@ -87,14 +87,18 @@ export const handler: Handler = async (event) => {
   const client = new OneSignal.DefaultApi(configuration);
 
   try {
+    console.log('🐛 DEBUG: Sending notification to OneSignal...');
+    console.log('🐛 DEBUG: Notification payload:', JSON.stringify(notification, null, 2));
     const response = await client.createNotification(notification);
+    console.log('🐛 DEBUG: OneSignal response:', response);
     return {
       statusCode: 200,
       headers: CORS_HEADERS,
       body: JSON.stringify({ ok: true, response }),
     };
   } catch (err: any) {
-    console.error('OneSignal error:', err);
+    console.error('❌ OneSignal error:', err);
+    console.error('❌ Error details:', err.response?.data || err.message);
     return {
       statusCode: 500,
       headers: CORS_HEADERS,
