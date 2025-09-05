@@ -15,7 +15,7 @@ const CORS_HEADERS: Record<string, string> = {
 };
 
 export const handler: Handler = async (event) => {
-  // Preflight CORS
+  // CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 204,
@@ -32,33 +32,46 @@ export const handler: Handler = async (event) => {
     };
   }
 
-  try {
-    const APP_ID  = process.env.ONESIGNAL_APP_ID || process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
-    const RESTKEY = process.env.ONESIGNAL_REST_API_KEY;
+  // Citește DOAR env-urile server-side (nu folosi NEXT_PUBLIC_* aici)
+  const APP_ID  = process.env.ONESIGNAL_APP_ID as string | undefined;
+  const RESTKEY = process.env.ONESIGNAL_REST_API_KEY as string | undefined;
 
-    if (!APP_ID || !RESTKEY) {
-      return {
-        statusCode: 500,
-        headers: CORS_HEADERS,
-        body: JSON.stringify({ error: 'Missing ONESIGNAL_APP_ID or ONESIGNAL_REST_API_KEY' }),
-      };
-    }
-
-    const { subscriptionId, title, message, url }: Req = JSON.parse(event.body || '{}');
-
-    const payload: any = {
-      app_id: APP_ID,
-      headings: { en: title || 'Test alertă vânt' },
-      contents: { en: message || 'Level danger, Wind 32 km/h' },
-      url: url || 'https://wind.qub3.uk',
+  if (!APP_ID || !RESTKEY) {
+    return {
+      statusCode: 500,
+      headers: CORS_HEADERS,
+      body: JSON.stringify({ error: 'Missing ONESIGNAL_APP_ID or ONESIGNAL_REST_API_KEY' }),
     };
+  }
 
-    if (subscriptionId) {
-      payload.include_subscription_ids = [subscriptionId];
-    } else {
-      payload.included_segments = ['Subscribed Users'];
-    }
+  let body: Req;
+  try {
+    body = JSON.parse(event.body || '{}');
+  } catch {
+    return {
+      statusCode: 400,
+      headers: CORS_HEADERS,
+      body: JSON.stringify({ error: 'Invalid JSON body' }),
+    };
+  }
 
+  const { subscriptionId, title, message, url } = body;
+
+  // Payload minim pentru test push
+  const payload: Record<string, any> = {
+    app_id: APP_ID,
+    headings: { en: title || 'Test alertă vânt' },
+    contents: { en: message || 'Level danger, Wind 32 km/h' },
+    url: url || 'https://wind.qub3.uk',
+  };
+
+  if (subscriptionId) {
+    payload.include_subscription_ids = [subscriptionId];
+  } else {
+    payload.included_segments = ['Subscribed Users'];
+  }
+
+  try {
     const res = await fetch('https://api.onesignal.com/notifications', {
       method: 'POST',
       headers: {
