@@ -1,10 +1,5 @@
 'use client';
-// shim pt. globalul injectat de SDK la runtime
-declare global {
-  interface Window {
-    OneSignal?: any;
-  }
-}
+
 import { useState, useEffect } from 'react';
 import { oneSignal } from '@/lib/onesignal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
