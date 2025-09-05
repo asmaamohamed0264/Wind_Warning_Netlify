@@ -9,6 +9,7 @@ export interface WeatherData {
   windDirection: number;
   description: string;
   icon: string;
+  location: string;
 }
 
 export interface ForecastData {

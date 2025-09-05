@@ -76,15 +76,21 @@ export default function Home() {
           windGust: 55,
           humidity: 60,
           pressure: 1013,
+          visibility: 10000,
+          windDirection: 270,
+          description: 'Cer senin',
+          icon: '01d',
           location: 'Aleea Someșul Cald',
           timestamp: new Date().toISOString(),
         };
         const mockForecast: ForecastData[] = Array(8).fill(0).map((_, i) => ({
-          timestamp: new Date(Date.now() + i * 3600000).toISOString(),
+          time: new Date(Date.now() + i * 3600000).toISOString(),
           temperature: 22 + i,
           windSpeed: 40 + i * 2,
           windGust: 50 + i * 2,
-          humidity: 60,
+          windDirection: 270,
+          description: 'Cer senin',
+          icon: '01d',
         }));
 
         setWeatherData(mockWeather);
