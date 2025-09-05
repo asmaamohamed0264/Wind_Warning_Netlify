@@ -135,32 +135,36 @@ export const oneSignal = {
 }; // <<< ÎNCHIDEM obiectul aici
 
 // ---- Helper de test prin funcția Netlify (export separat) ----
-export async function sendServerTestNotification() {
-  try {
-    const res = await fetch('/api/send-alerts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        level: 'caution',
-        windSpeed: 50, // > 0 ca să treacă validările vechi
-        time: new Date().toISOString(),
-        title: 'Test Alerte Vânt',
-        message: '🔔 Notificare de test (Wind Alert)',
-      }),
-    });
+export async function sendServerTestNotification(payload: {
+  level?: 'caution' | 'warning' | 'danger';
+  windSpeed?: number;
+  channels?: Array<'push' | 'email' | 'sms'>;
+  include_subscription_ids?: string[];
+  include_email_tokens?: string[];
+  include_phone_numbers?: string[];
+} = {}) {
+  const body: any = {
+    level: payload.level ?? 'warning',
+    windSpeed: payload.windSpeed ?? 30,
+  };
 
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`send-alerts responded ${res.status}: ${text}`);
-    }
+  if (payload.channels) body.channels = payload.channels;
+  if (payload.include_subscription_ids?.length)
+    body.include_subscription_ids = payload.include_subscription_ids;
+  if (payload.include_email_tokens?.length)
+    body.include_email_tokens = payload.include_email_tokens;
+  if (payload.include_phone_numbers?.length)
+    body.include_phone_numbers = payload.include_phone_numbers;
 
-    try {
-      return await res.json(); // poate lipsi
-    } catch {
-      return null;
-    }
-  } catch (err) {
-    console.error('sendServerTestNotification failed', err);
-    throw err;
+  const res = await fetch('/api/send-alerts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`send-alerts responded ${res.status}: ${text}`);
   }
+  return res.json();
 }
