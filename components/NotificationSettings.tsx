@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Mail, Check, X, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { sendServerTestNotification } from '@/lib/onesignal';
+
 
 // ==== util: maschează o adresă de email (scos în afara componentei ca să evităm confuzii de acolade) ====
 function maskEmail(email: string): string {
@@ -275,33 +275,33 @@ export function NotificationSettings() {
           {/* Test Notification Button */}
           {pushEnabled && (
             <div className="pt-4 border-t border-gray-700">
-             <Button
+            <Button
   onClick={async () => {
     try {
-      // Construim payload-ul pentru funcția Netlify în funcție de ce ai configurat în UI
-      const channels: Array<'push' | 'email' | 'sms'> = ['push'];
-      const body: any = {
-        level: 'warning',
-        windSpeed: 30,
-        channels,
-      };
+      const subId = await OneSignal.User.PushSubscription.id;
 
-      // dacă ai email introdus, trimitem și email
-      if (emailAddress.trim()) {
-        channels.push('email');
-        body.include_email_tokens = [emailAddress.trim()];
+      const res = await fetch('/.netlify/functions/sendTestPush', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subscriptionId: subId,          // targetează browserul curent
+          title: 'Test alertă vânt',
+          message: 'Level danger, Wind 32 km/h',
+          url: 'https://wind.qub3.uk',
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error('OneSignal test push error:', data);
+        toast.error('❌ Trimiterea a eșuat.');
+        return;
       }
-
-      // dacă ai telefon introdus, trimitem și sms
-      if (phoneNumber.trim()) {
-        channels.push('sms');
-        body.include_phone_numbers = [phoneNumber.trim()];
-      }
-
-      await sendServerTestNotification(body);
-      console.log('✅ Notificare de test trimisă');
+      console.log('OneSignal test push OK:', data);
+      toast.success('✅ Notificare de test trimisă prin OneSignal!');
     } catch (e) {
       console.error('❌ Eroare la trimitere', e);
+      toast.error('❌ Eroare la trimitere.');
     }
   }}
   className="w-full mt-3"
@@ -309,6 +309,7 @@ export function NotificationSettings() {
 >
   🧪 Trimite Notificare de Test
 </Button>
+
             </div>
           )}
         </div>
