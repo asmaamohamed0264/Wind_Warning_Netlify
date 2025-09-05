@@ -285,9 +285,8 @@ export function NotificationSettings() {
 
                     await sendServerTestNotification({
                       include_subscription_ids: [subId],
-                      title: 'Test alertă vânt',
-                      message: 'Level danger, Wind 32 km/h',
-                      url: 'https://wind.qub3.uk',
+                      level: 'danger',
+                      windSpeed: 32,
                     });
 
                     toast.success('✅ Notificare de test trimisă prin OneSignal!');
