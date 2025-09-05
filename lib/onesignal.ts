@@ -130,9 +130,9 @@ export const oneSignal = {
     }
     if (opts.location && os.User.addTags) {
       await os.User.addTags({ location: opts.location });
-  }
+    }
   },
-}; // <<< ÎNCHIDEM obiectul aici
+};
 
 // ---- Helper de test prin funcția Netlify (export separat) ----
 export async function sendServerTestNotification(payload: {
@@ -156,7 +156,7 @@ export async function sendServerTestNotification(payload: {
   if (payload.include_phone_numbers?.length)
     body.include_phone_numbers = payload.include_phone_numbers;
 
-  const res = await fetch('/api/send-alerts', {
+  const res = await fetch('/api/sendTestPush', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -164,7 +164,7 @@ export async function sendServerTestNotification(payload: {
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`send-alerts responded ${res.status}: ${text}`);
+    throw new Error(`sendTestPush responded ${res.status}: ${text}`);
   }
   return res.json();
 }
