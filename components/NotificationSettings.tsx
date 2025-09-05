@@ -278,7 +278,7 @@ export function NotificationSettings() {
           <Button
   onClick={async () => {
     try {
-      // @ts-expect-error OneSignal e injectat de SDK la runtime
+      
       const subId = await window.OneSignal?.User?.PushSubscription?.id;
       if (!subId) {
         toast.error('Nu ești abonat la push (subscriptionId lipsă).');
