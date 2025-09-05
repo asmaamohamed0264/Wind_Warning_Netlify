@@ -2,44 +2,50 @@
 import type { Handler } from '@netlify/functions';
 
 type Req = {
-  subscriptionId?: string;    // dacă e prezent -> trimitem doar către acest abonat
-  title?: string;             // override titlu
-  message?: string;           // override conținut
-  url?: string;               // click-through
+  subscriptionId?: string;
+  title?: string;
+  message?: string;
+  url?: string;
+};
+
+const CORS_HEADERS: Record<string, string> = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'content-type',
+  'Access-Control-Allow-Methods': 'POST,OPTIONS',
 };
 
 export const handler: Handler = async (event) => {
-  // CORS basic (în caz că apelezi din browser)
+  // Preflight CORS
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'content-type',
-        'Access-Control-Allow-Methods': 'POST,OPTIONS',
-      },
+      headers: CORS_HEADERS,
       body: '',
     };
   }
 
   if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
+    return {
+      statusCode: 405,
+      headers: CORS_HEADERS,
+      body: 'Method Not Allowed',
+    };
   }
 
   try {
-    const APP_ID = process.env.ONESIGNAL_APP_ID;
-    const REST_KEY = process.env.ONESIGNAL_REST_API_KEY;
+    const APP_ID  = process.env.ONESIGNAL_APP_ID || process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
+    const RESTKEY = process.env.ONESIGNAL_REST_API_KEY;
 
-    if (!APP_ID || !REST_KEY) {
+    if (!APP_ID || !RESTKEY) {
       return {
         statusCode: 500,
+        headers: CORS_HEADERS,
         body: JSON.stringify({ error: 'Missing ONESIGNAL_APP_ID or ONESIGNAL_REST_API_KEY' }),
       };
     }
 
     const { subscriptionId, title, message, url }: Req = JSON.parse(event.body || '{}');
 
-    // payload minim pentru test push
     const payload: any = {
       app_id: APP_ID,
       headings: { en: title || 'Test alertă vânt' },
@@ -47,7 +53,6 @@ export const handler: Handler = async (event) => {
       url: url || 'https://wind.qub3.uk',
     };
 
-    // dacă avem subscriptionId, targetăm device-ul curent; altfel, broadcast către Subscribed Users
     if (subscriptionId) {
       payload.include_subscription_ids = [subscriptionId];
     } else {
@@ -58,7 +63,7 @@ export const handler: Handler = async (event) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Basic ${REST_KEY}`,
+        Authorization: `Basic ${RESTKEY}`,
       },
       body: JSON.stringify(payload),
     });
@@ -67,13 +72,13 @@ export const handler: Handler = async (event) => {
 
     return {
       statusCode: res.status,
-      headers: { 'Access-Control-Allow-Origin': '*' },
+      headers: CORS_HEADERS,
       body: text,
     };
   } catch (err: any) {
     return {
       statusCode: 500,
-      headers: { 'Access-Control-Allow-Origin': '*' },
+      headers: CORS_HEADERS,
       body: JSON.stringify({ error: err?.message || 'Unknown error' }),
     };
   }
