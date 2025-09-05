@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Mail, Check, X, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
-
 // ==== util: maschează o adresă de email (scos în afara componentei ca să evităm confuzii de acolade) ====
 function maskEmail(email: string): string {
   if (!email || !email.includes('@')) return email;
@@ -275,47 +274,44 @@ export function NotificationSettings() {
           {/* Test Notification Button */}
           {pushEnabled && (
             <div className="pt-4 border-t border-gray-700">
-          <Button
-  onClick={async () => {
-    try {
-      
-      const subId = await window.OneSignal?.User?.PushSubscription?.id;
-      if (!subId) {
-        toast.error('Nu ești abonat la push (subscriptionId lipsă).');
-        return;
-      }
+              <Button
+                onClick={async () => {
+                  try {
+                    const subId = await window.OneSignal?.User?.PushSubscription?.id;
+                    if (!subId) {
+                      toast.error('Nu ești abonat la push (subscriptionId lipsă).');
+                      return;
+                    }
 
-      const res = await fetch('/.netlify/functions/sendTestPush', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subscriptionId: subId,
-          title: 'Test alertă vânt',
-          message: 'Level danger, Wind 32 km/h',
-          url: 'https://wind.qub3.uk',
-        }),
-      });
+                    const res = await fetch('/.netlify/functions/sendTestPush', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        subscriptionId: subId,
+                        title: 'Test alertă vânt',
+                        message: 'Level danger, Wind 32 km/h',
+                        url: 'https://wind.qub3.uk',
+                      }),
+                    });
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        console.error('OneSignal test push error:', data);
-        toast.error('❌ Trimiterea a eșuat.');
-        return;
-      }
-      console.log('OneSignal test push OK:', data);
-      toast.success('✅ Notificare de test trimisă prin OneSignal!');
-    } catch (e) {
-      console.error('❌ Eroare la trimitere', e);
-      toast.error('❌ Eroare neașteptată.');
-    }
-  }}
-  className="w-full mt-3"
-  variant="secondary"
->
-  🧪 Trimite Notificare de Test
-</Button>
-
-
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) {
+                      console.error('OneSignal test push error:', data);
+                      toast.error('❌ Trimiterea a eșuat.');
+                      return;
+                    }
+                    console.log('OneSignal test push OK:', data);
+                    toast.success('✅ Notificare de test trimisă prin OneSignal!');
+                  } catch (err) {
+                    console.error('❌ Eroare la trimitere', err);
+                    toast.error('❌ Eroare neașteptată.');
+                  }
+                }}
+                className="w-full mt-3"
+                variant="secondary"
+              >
+                🧪 Trimite Notificare de Test
+              </Button>
             </div>
           )}
         </div>
