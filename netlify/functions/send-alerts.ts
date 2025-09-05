@@ -75,7 +75,7 @@ export const handler: Handler = async (event) => {
   notification.url = 'https://wind.qub3.uk';
 
   if (channels?.length) {
-    notification.channel_for_external_user_ids = channels;
+    notification.included_segments = ['Subscribed Users'];
   } else {
     notification.included_segments = ['Subscribed Users'];
   }
