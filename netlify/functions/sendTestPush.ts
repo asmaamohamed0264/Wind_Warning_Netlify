@@ -65,7 +65,7 @@ export const handler: Handler = async (event) => {
     const response = await fetch(`https://api.notificationapi.com/${CLIENT_ID}/sender`, {
       method: 'POST',
       headers: {
-        'Authorization': `Basic ${btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)}`,
+        'Authorization': `Basic ${Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),

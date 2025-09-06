@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { NotificationAPIProvider } from '@notificationapi/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Mail, Check, X, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import WebPushPermissionButton from './WebPushPermissionButton';
+// WebPushPermissionButton removed; Switch calls SDK directly
 
 // ==== util: maschează o adresă de email (scos în afara componentei ca să evităm confuzii de acolade) ====
 function maskEmail(email: string): string {
@@ -32,6 +33,7 @@ function maskEmail(email: string): string {
 }
 
 export function NotificationSettings() {
+  const notificationapi = NotificationAPIProvider.useNotificationAPIContext();
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushSupported, setPushSupported] = useState(false);
   const [smsEnabled, setSmsEnabled] = useState(false);
@@ -86,6 +88,7 @@ export function NotificationSettings() {
     setIsLoading(true);
     if (enabled) {
       try {
+        await notificationapi.setWebPushOptIn(true);
         // Solicităm permisiunea pentru notificări
         if ('Notification' in window && Notification.permission === 'default') {
           const permission = await Notification.requestPermission();
@@ -107,6 +110,7 @@ export function NotificationSettings() {
       }
     } else {
       try {
+        await notificationapi.setWebPushOptIn(false);
         // Dezactivăm notificările (ștergem din localStorage)
         setPushEnabled(false);
         localStorage.setItem('push_enabled', 'false');
@@ -256,12 +260,7 @@ export function NotificationSettings() {
             </div>
           ) : null}
 
-          {/* Web Push Permission Button */}
-          {pushSupported && !pushEnabled && (
-            <div className="pt-4 border-t border-gray-700">
-              <WebPushPermissionButton />
-            </div>
-          )}
+          
 
           {/* Test Notification Button */}
           {pushEnabled && (
@@ -270,7 +269,7 @@ export function NotificationSettings() {
                 onClick={async () => {
                   try {
                     // Call the Netlify function directly
-                    const response = await fetch('/api/sendTestPush', {
+                    const response = await fetch('/.netlify/functions/sendTestPush', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({

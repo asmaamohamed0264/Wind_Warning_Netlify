@@ -6,14 +6,15 @@ self.addEventListener('push', function(event) {
     return;
   }
 
-  const data = event.data.json();
+  const data = event.data.json() || {};
+  const urlFromPayload = (data && data.data && data.data.url) || data.url || data.click_action;
 
   const options = {
     body: data.body,
     icon: data.icon || '/favicon.ico',
     badge: data.badge || '/favicon.ico',
     image: data.image,
-    data: data.data || {},
+    data: { ...(data.data || {}), ...(urlFromPayload ? { url: urlFromPayload } : {}) },
     requireInteraction: data.requireInteraction || false,
     silent: data.silent || false,
     actions: data.actions || [],
@@ -28,7 +29,7 @@ self.addEventListener('push', function(event) {
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
 
-  const url = event.notification.data.url || '/';
+  const url = (event && event.notification && event.notification.data && event.notification.data.url) || '/';
 
   event.waitUntil(
     clients.openWindow(url)
