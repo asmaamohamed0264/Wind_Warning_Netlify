@@ -49,22 +49,23 @@ export const handler: Handler = async (event) => {
   const { subscriptionId, title, message, url } = body;
 
   const payload = {
-    clientId: CLIENT_ID,
-    clientSecret: CLIENT_SECRET,
     notificationId: 'test-notification', // Definit în dashboard-ul NotificationAPI
-    recipients: subscriptionId ? [{ userId: subscriptionId }] : [{ userId: 'default-user' }],
-    data: {
-      title: title || 'Test alertă vânt',
-      body: message || 'Level danger, Wind 32 km/h',
-      url: url || 'https://wind.qub3.uk',
+    user: {
+      id: 'pluscuplus@gmail.com', // User ID specific
+      email: 'pluscuplus@gmail.com'
     },
-    channels: ['webPush'], // Canale implicite pentru test
+    mergeTags: {
+      title: title || 'Test alertă vânt',
+      message: message || 'Level danger, Wind 32 km/h',
+      url: url || 'https://wind.qub3.uk'
+    }
   };
 
   try {
-    const response = await fetch('https://app.notificationapi.com/api/v1/send', {
+    const response = await fetch(`https://api.notificationapi.com/${CLIENT_ID}/sender`, {
       method: 'POST',
       headers: {
+        'Authorization': `Basic ${btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),

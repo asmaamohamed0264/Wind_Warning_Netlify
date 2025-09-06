@@ -57,22 +57,23 @@ export const handler: Handler = async (event) => {
   }
 
   const payload = {
-    clientId: CLIENT_ID,
-    clientSecret: CLIENT_SECRET,
     notificationId: 'weather-alert', // Definit în dashboard-ul NotificationAPI
-    recipients: [{ userId: 'all-users' }], // Trimite la toți utilizatorii abonați
-    data: {
-      title: `Alertă ${level.toUpperCase()}`,
-      body: `${level.toUpperCase()}: Vânt de ${windSpeed} km/h detectat. Luați măsuri de siguranță!`,
-      url: 'https://wind.qub3.uk',
+    user: {
+      id: 'pluscuplus@gmail.com', // User ID specific
+      email: 'pluscuplus@gmail.com'
     },
-    channels: channels || ['webPush', 'email'], // Canale implicite sau specificate
+    mergeTags: {
+      title: `Alertă ${level.toUpperCase()}`,
+      message: `${level.toUpperCase()}: Vânt de ${windSpeed} km/h detectat. Luați măsuri de siguranță!`,
+      url: 'https://wind.qub3.uk'
+    }
   };
 
   try {
-    const response = await fetch('https://app.notificationapi.com/api/v1/send', {
+    const response = await fetch(`https://api.notificationapi.com/${CLIENT_ID}/sender`, {
       method: 'POST',
       headers: {
+        'Authorization': `Basic ${btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
