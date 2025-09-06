@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { oneSignal } from '@/lib/onesignal';
 import { WeatherDashboard } from '@/components/WeatherDashboard';
 import { AlertPanel } from '@/components/AlertPanel';
 import { ThresholdControl } from '@/components/ThresholdControl';
@@ -146,7 +145,7 @@ export default function Home() {
         body: JSON.stringify({
           level: newLevel,
           windSpeed: Math.round(maxWindSpeed),
-          channels: ['push', 'sms', 'email'],
+          channels: ['webPush', 'email'], // Canale implicite
         }),
       }).catch((err) => console.error('Eroare la trimitere alertă automată:', err));
     }

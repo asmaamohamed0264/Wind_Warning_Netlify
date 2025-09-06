@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { oneSignal, sendServerTestNotification } from '@/lib/onesignal';
+import { sendServerTestNotification } from '@/lib/onesignal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -276,40 +276,18 @@ export function NotificationSettings() {
             <div className="pt-4 border-t border-gray-700">
               <Button
                 onClick={async () => {
-                    alert('🐛 DEBUG: Test button clicked!');
-                    console.log('🐛 DEBUG: Test button clicked!');
-                    console.log('🐛 DEBUG: Push enabled:', pushEnabled);
-                    console.log('🐛 DEBUG: Email address:', emailAddress);
-                    console.log('🐛 DEBUG: Phone number:', phoneNumber);
-
                   try {
-                    console.log('🐛 DEBUG: Getting subscription ID...');
-                    console.log('🐛 DEBUG: OneSignal object:', window.OneSignal);
-                    console.log('🐛 DEBUG: OneSignal User:', window.OneSignal?.User);
-                    console.log('🐛 DEBUG: PushSubscription:', window.OneSignal?.User?.PushSubscription);
-                    const subId = await window.OneSignal?.User?.PushSubscription?.id;
-                    console.log('🐛 DEBUG: Subscription ID:', subId);
-
-                    if (!subId) {
-                      console.log('🐛 DEBUG: No subscription ID found');
-                      toast.error('Nu eștiabonat la push (subscriptionId lipsă).');
-                      return;
-                    }
-
-                    console.log('🐛 DEBUG: Sending test notification to:', subId);
-                    const result = await sendServerTestNotification({
-                      level: 'danger',
-                      windSpeed: 32,
-                      channels: ['push'],
+                    const subId = 'default-user'; // Fallback temporar
+                    await sendServerTestNotification({
+                      include_subscription_ids: [subId],
+                      title: 'Test alertă vânt',
+                      message: 'Level danger, Wind 32 km/h',
+                      url: 'https://wind.qub3.uk',
                     });
-
-                    console.log('🐛 DEBUG: Server response:', result);
-                    console.log('🐛 DEBUG: Notification sent successfully');
-                    toast.success('✅ Notificare de test trimisă prin OneSignal!');
-
-                  } catch (err: any) {
-                    console.error('❌ Eroare la trimitere:', err);
-                    toast.error(`❌ Eroare: ${err?.message || 'Unknown error'}`);
+                    toast.success('✅ Notificare de test trimisă prin NotificationAPI!');
+                  } catch (err) {
+                    console.error('❌ Eroare la trimitere', err);
+                    toast.error('❌ Eroare neașteptată.');
                   }
                 }}
                 className="w-full mt-3"
