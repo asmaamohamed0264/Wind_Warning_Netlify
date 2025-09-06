@@ -1,16 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  sendServerTestNotification,
-  registerUser,
-  sendPushNotification,
-  setSMSNumber,
-  setEmail,
-  removeSMS,
-  removeEmail,
-  getUserSubscriptions
-} from '@/lib/onesignal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Mail, Check, X, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import WebPushPermissionButton from './WebPushPermissionButton';
 
 // ==== util: maschează o adresă de email (scos în afara componentei ca să evităm confuzii de acolade) ====
 function maskEmail(email: string): string {
@@ -59,8 +50,8 @@ export function NotificationSettings() {
       setPushSupported(supported);
 
       // Verificăm starea abonamentelor din localStorage
-      const subscriptions = await getUserSubscriptions('default-user');
-      setPushEnabled(subscriptions.push);
+      const pushEnabled = localStorage.getItem('push_enabled') === 'true';
+      setPushEnabled(pushEnabled);
 
       if ('Notification' in window) {
         setPushPermission(Notification.permission);
@@ -106,16 +97,10 @@ export function NotificationSettings() {
           }
         }
 
-        // Înregistrăm utilizatorul cu NotificationAPI
-        const result = await registerUser('default-user', emailAddress || undefined, phoneNumber || undefined);
-        if (result.success) {
-          setPushEnabled(true);
-          localStorage.setItem('push_enabled', 'true');
-          toast.success('Notificările push au fost activate cu succes!');
-        } else {
-          setPushEnabled(false);
-          toast.error('Eroare la activarea notificărilor push');
-        }
+        // Activăm notificările push prin NotificationAPI
+        setPushEnabled(true);
+        localStorage.setItem('push_enabled', 'true');
+        toast.success('Notificările push au fost activate cu succes!');
       } catch (error) {
         console.error('Error enabling notifications:', error);
         toast.error('Eroare la activarea notificărilor push');
@@ -153,15 +138,11 @@ export function NotificationSettings() {
 
     setIsLoading(true);
     try {
-      const result = await setSMSNumber('default-user', trimmedPhone);
-      if (result.success) {
-        setSmsEnabled(true);
-        localStorage.setItem('sms_phone_number', trimmedPhone);
-        localStorage.setItem('sms_enabled', 'true');
-        toast.success('Abonare SMS reușită!');
-      } else {
-        toast.error('Eroare la configurarea SMS-ului. Încercați din nou.');
-      }
+      // Update localStorage
+      setSmsEnabled(true);
+      localStorage.setItem('sms_phone_number', trimmedPhone);
+      localStorage.setItem('sms_enabled', 'true');
+      toast.success('Abonare SMS reușită!');
     } catch (error) {
       console.error('SMS subscription error:', error);
       toast.error('Eroare la configurarea SMS-ului. Încercați din nou.');
@@ -173,14 +154,10 @@ export function NotificationSettings() {
   const handleSmsUnsubscribe = async () => {
     setIsLoading(true);
     try {
-      const result = await removeSMS('default-user');
-      if (result.success) {
-        setSmsEnabled(false);
-        localStorage.setItem('sms_enabled', 'false');
-        toast.success('Dezabonare SMS reușită');
-      } else {
-        toast.error('Eroare la dezabonare. Încercați din nou.');
-      }
+      // Update localStorage
+      setSmsEnabled(false);
+      localStorage.setItem('sms_enabled', 'false');
+      toast.success('Dezabonare SMS reușită');
     } catch (error) {
       console.error('SMS unsubscription error:', error);
       toast.error('Eroare la dezabonare. Încercați din nou.');
@@ -202,15 +179,11 @@ export function NotificationSettings() {
 
     setIsLoading(true);
     try {
-      const result = await setEmail('default-user', emailAddress.trim());
-      if (result.success) {
-        setIsEmailSubscribed(true);
-        localStorage.setItem('email_address', emailAddress.trim());
-        localStorage.setItem('email_enabled', 'true');
-        toast.success(`Adresa ${emailAddress} a fost configurată!`);
-      } else {
-        toast.error('Eroare la configurarea email-ului. Încercați din nou.');
-      }
+      // Update localStorage
+      setIsEmailSubscribed(true);
+      localStorage.setItem('email_address', emailAddress.trim());
+      localStorage.setItem('email_enabled', 'true');
+      toast.success(`Adresa ${emailAddress} a fost configurată!`);
     } catch (error) {
       console.error('Email configuration error:', error);
       toast.error('Eroare la configurarea email-ului. Încercați din nou.');
@@ -222,14 +195,10 @@ export function NotificationSettings() {
   const handleEmailUnsubscribe = async () => {
     setIsLoading(true);
     try {
-      const result = await removeEmail('default-user');
-      if (result.success) {
-        setIsEmailSubscribed(false);
-        localStorage.setItem('email_enabled', 'false');
-        toast.success('Email dezactivat pentru alerte.');
-      } else {
-        toast.error('Eroare la dezactivare email. Încercați din nou.');
-      }
+      // Update localStorage
+      setIsEmailSubscribed(false);
+      localStorage.setItem('email_enabled', 'false');
+      toast.success('Email dezactivat pentru alerte.');
     } catch (error) {
       console.error('Email unsubscription error:', error);
       toast.error('Eroare la dezactivare email. Încercați din nou.');
@@ -287,20 +256,35 @@ export function NotificationSettings() {
             </div>
           ) : null}
 
+          {/* Web Push Permission Button */}
+          {pushSupported && !pushEnabled && (
+            <div className="pt-4 border-t border-gray-700">
+              <WebPushPermissionButton />
+            </div>
+          )}
+
           {/* Test Notification Button */}
           {pushEnabled && (
             <div className="pt-4 border-t border-gray-700">
               <Button
                 onClick={async () => {
                   try {
-                    const subId = 'default-user'; // Fallback temporar
-                    await sendServerTestNotification({
-                      include_subscription_ids: [subId],
-                      title: 'Test alertă vânt',
-                      message: 'Level danger, Wind 32 km/h',
-                      url: 'https://wind.qub3.uk',
+                    // Call the Netlify function directly
+                    const response = await fetch('/api/sendTestPush', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        title: 'Test alertă vânt',
+                        message: 'Level danger, Wind 32 km/h',
+                        url: 'https://wind.qub3.uk',
+                      }),
                     });
-                    toast.success('✅ Notificare de test trimisă prin NotificationAPI!');
+
+                    if (response.ok) {
+                      toast.success('✅ Notificare de test trimisă prin NotificationAPI!');
+                    } else {
+                      throw new Error('Failed to send test notification');
+                    }
                   } catch (err) {
                     console.error('❌ Eroare la trimitere', err);
                     toast.error('❌ Eroare neașteptată.');

@@ -3,6 +3,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Script from 'next/script';
+import NotificationProvider from '@/components/NotificationProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -49,7 +50,9 @@ console.log('NotificationAPI ready');
       </head>
 
       <body className={`${inter.className} bg-gray-900 text-white antialiased`}>
-        {children}
+        <NotificationProvider>
+          {children}
+        </NotificationProvider>
 
         {/* Favicon și app icons (le păstrez exact cum le aveai) */}
         <link rel="icon" href="/1000088934-modified.png" />
