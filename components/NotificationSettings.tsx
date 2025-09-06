@@ -1,7 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { sendServerTestNotification } from '@/lib/onesignal';
+import {
+  sendServerTestNotification,
+  registerUser,
+  sendPushNotification,
+  setSMSNumber,
+  setEmail,
+  removeSMS,
+  removeEmail,
+  getUserSubscriptions
+} from '@/lib/onesignal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,21 +53,21 @@ export function NotificationSettings() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const initOneSignal = async () => {
-      await oneSignal.initialize();
+    const initNotifications = async () => {
       const supported =
         typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator;
       setPushSupported(supported);
 
-      const isSubscribed = await oneSignal.isSubscribed();
-      setPushEnabled(isSubscribed);
+      // Verificăm starea abonamentelor din localStorage
+      const subscriptions = await getUserSubscriptions('default-user');
+      setPushEnabled(subscriptions.push);
 
       if ('Notification' in window) {
         setPushPermission(Notification.permission);
       }
     };
 
-    initOneSignal();
+    initNotifications();
 
     // SMS saved prefs
     const savedPhone = localStorage.getItem('sms_phone_number');
@@ -86,34 +95,39 @@ export function NotificationSettings() {
     setIsLoading(true);
     if (enabled) {
       try {
-        const success = await oneSignal.subscribe();
-        if (success) {
+        // Solicităm permisiunea pentru notificări
+        if ('Notification' in window && Notification.permission === 'default') {
+          const permission = await Notification.requestPermission();
+          if (permission !== 'granted') {
+            setPushEnabled(false);
+            toast.error('Permisiunea pentru notificări a fost refuzată');
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // Înregistrăm utilizatorul cu NotificationAPI
+        const result = await registerUser('default-user', emailAddress || undefined, phoneNumber || undefined);
+        if (result.success) {
           setPushEnabled(true);
+          localStorage.setItem('push_enabled', 'true');
           toast.success('Notificările push au fost activate cu succes!');
-          await oneSignal.configureUser({
-            email: emailAddress || undefined,
-            phoneNumber: phoneNumber || undefined,
-            location: 'Aleea Someșul Cald',
-          });
         } else {
           setPushEnabled(false);
-          toast.error('Permisiunea pentru notificări a fost refuzată');
+          toast.error('Eroare la activarea notificărilor push');
         }
       } catch (error) {
-        console.error('Error enabling OneSignal notifications:', error);
+        console.error('Error enabling notifications:', error);
         toast.error('Eroare la activarea notificărilor push');
       }
     } else {
       try {
-        const success = await oneSignal.unsubscribe();
-        if (success) {
-          setPushEnabled(false);
-          toast.success('Notificările push au fost dezactivate');
-        } else {
-          toast.error('Eroare la dezactivarea notificărilor');
-        }
+        // Dezactivăm notificările (ștergem din localStorage)
+        setPushEnabled(false);
+        localStorage.setItem('push_enabled', 'false');
+        toast.success('Notificările push au fost dezactivate');
       } catch (error) {
-        console.error('Error disabling OneSignal notifications:', error);
+        console.error('Error disabling notifications:', error);
         toast.error('Eroare la dezactivarea notificărilor push');
       }
     }
@@ -139,20 +153,17 @@ export function NotificationSettings() {
 
     setIsLoading(true);
     try {
-      await oneSignal.setSMSNumber(trimmedPhone);
-      setSmsEnabled(true);
-      localStorage.setItem('sms_phone_number', trimmedPhone);
-      localStorage.setItem('sms_enabled', 'true');
-
-      await oneSignal.configureUser({
-        email: emailAddress || undefined,
-        phoneNumber: trimmedPhone,
-        location: 'Aleea Someșul Cald',
-      });
-
-      toast.success('Abonare SMS reușită!');
+      const result = await setSMSNumber('default-user', trimmedPhone);
+      if (result.success) {
+        setSmsEnabled(true);
+        localStorage.setItem('sms_phone_number', trimmedPhone);
+        localStorage.setItem('sms_enabled', 'true');
+        toast.success('Abonare SMS reușită!');
+      } else {
+        toast.error('Eroare la configurarea SMS-ului. Încercați din nou.');
+      }
     } catch (error) {
-      console.error('OneSignal SMS subscription error:', error);
+      console.error('SMS subscription error:', error);
       toast.error('Eroare la configurarea SMS-ului. Încercați din nou.');
     } finally {
       setIsLoading(false);
@@ -162,12 +173,16 @@ export function NotificationSettings() {
   const handleSmsUnsubscribe = async () => {
     setIsLoading(true);
     try {
-      await oneSignal.removeSms(phoneNumber.trim());
-      setSmsEnabled(false);
-      localStorage.setItem('sms_enabled', 'false');
-      toast.success('Dezabonare SMS reușită');
+      const result = await removeSMS('default-user');
+      if (result.success) {
+        setSmsEnabled(false);
+        localStorage.setItem('sms_enabled', 'false');
+        toast.success('Dezabonare SMS reușită');
+      } else {
+        toast.error('Eroare la dezabonare. Încercați din nou.');
+      }
     } catch (error) {
-      console.error('OneSignal SMS unsubscription error:', error);
+      console.error('SMS unsubscription error:', error);
       toast.error('Eroare la dezabonare. Încercați din nou.');
     } finally {
       setIsLoading(false);
@@ -187,20 +202,17 @@ export function NotificationSettings() {
 
     setIsLoading(true);
     try {
-      await oneSignal.setEmail(emailAddress.trim());
-      setIsEmailSubscribed(true);
-      localStorage.setItem('email_address', emailAddress.trim());
-      localStorage.setItem('email_enabled', 'true');
-
-      await oneSignal.configureUser({
-        email: emailAddress.trim(),
-        phoneNumber: phoneNumber || undefined,
-        location: 'Aleea Someșul Cald',
-      });
-
-      toast.success(`Adresa ${emailAddress} a fost configurată!`);
+      const result = await setEmail('default-user', emailAddress.trim());
+      if (result.success) {
+        setIsEmailSubscribed(true);
+        localStorage.setItem('email_address', emailAddress.trim());
+        localStorage.setItem('email_enabled', 'true');
+        toast.success(`Adresa ${emailAddress} a fost configurată!`);
+      } else {
+        toast.error('Eroare la configurarea email-ului. Încercați din nou.');
+      }
     } catch (error) {
-      console.error('OneSignal email configuration error:', error);
+      console.error('Email configuration error:', error);
       toast.error('Eroare la configurarea email-ului. Încercați din nou.');
     } finally {
       setIsLoading(false);
@@ -210,12 +222,16 @@ export function NotificationSettings() {
   const handleEmailUnsubscribe = async () => {
     setIsLoading(true);
     try {
-      await oneSignal.removeEmail(emailAddress.trim());
-      setIsEmailSubscribed(false);
-      localStorage.setItem('email_enabled', 'false');
-      toast.success('Email dezactivat pentru alerte.');
+      const result = await removeEmail('default-user');
+      if (result.success) {
+        setIsEmailSubscribed(false);
+        localStorage.setItem('email_enabled', 'false');
+        toast.success('Email dezactivat pentru alerte.');
+      } else {
+        toast.error('Eroare la dezactivare email. Încercați din nou.');
+      }
     } catch (error) {
-      console.error('OneSignal email unsubscription error:', error);
+      console.error('Email unsubscription error:', error);
       toast.error('Eroare la dezactivare email. Încercați din nou.');
     } finally {
       setIsLoading(false);

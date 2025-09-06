@@ -3,7 +3,6 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Script from 'next/script';
-import OneSignalInit from '@/components/OneSignalInit';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -40,20 +39,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://api.openweathermap.org" />
         <link rel="dns-prefetch" href="https://api.openweathermap.org" />
 
-        {/* OneSignal Web SDK v16 + coada recomandată */}
-        <Script
-          src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
-          strategy="afterInteractive"
-        />
-        <Script id="onesignal-queue" strategy="afterInteractive">
-          {`window.OneSignalDeferred = window.OneSignalDeferred || [];`}
+        {/* NotificationAPI - înlocuiește OneSignal */}
+        <Script id="notificationapi-init" strategy="afterInteractive">
+          {`
+// Inițializare NotificationAPI (se va face în componente când e nevoie)
+console.log('NotificationAPI ready');
+          `}
         </Script>
       </head>
 
       <body className={`${inter.className} bg-gray-900 text-white antialiased`}>
         {children}
-        {/* Pornește OneSignal după hidratarea paginii */}
-        <OneSignalInit />
 
         {/* Favicon și app icons (le păstrez exact cum le aveai) */}
         <link rel="icon" href="/1000088934-modified.png" />
