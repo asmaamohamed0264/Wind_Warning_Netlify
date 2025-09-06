@@ -1,12 +1,5 @@
 // netlify/functions/send-alerts.ts
 import type { Handler } from '@netlify/functions';
-import * as OneSignal from '@onesignal/node-onesignal';
-
-type Req = {
-  level?: 'caution' | 'warning' | 'danger';
-  windSpeed?: number;
-  channels?: Array<'push' | 'email' | 'sms'>;
-};
 
 const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -15,7 +8,6 @@ const CORS_HEADERS: Record<string, string> = {
 };
 
 export const handler: Handler = async (event) => {
-  // CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 204,
@@ -28,30 +20,29 @@ export const handler: Handler = async (event) => {
     return {
       statusCode: 405,
       headers: CORS_HEADERS,
-      body: 'Method Not Allowed',
+      body: 'Metodă nepermisă',
     };
   }
 
-  // Citește DOAR env-urile server-side
-  const APP_ID = process.env.ONESIGNAL_APP_ID as string | undefined;
-  const RESTKEY = process.env.ONESIGNAL_REST_API_KEY as string | undefined;
+  const CLIENT_ID = process.env.NOTIFICATIONAPI_CLIENT_ID as string | undefined;
+  const CLIENT_SECRET = process.env.NOTIFICATIONAPI_CLIENT_SECRET as string | undefined;
 
-  if (!APP_ID || !RESTKEY) {
+  if (!CLIENT_ID || !CLIENT_SECRET) {
     return {
       statusCode: 500,
       headers: CORS_HEADERS,
-      body: JSON.stringify({ error: 'Missing ONESIGNAL_APP_ID or ONESIGNAL_REST_API_KEY' }),
+      body: JSON.stringify({ error: 'Lipsește NOTIFICATIONAPI_CLIENT_ID sau NOTIFICATIONAPI_CLIENT_SECRET' }),
     };
   }
 
-  let body: Req;
+  let body;
   try {
     body = JSON.parse(event.body || '{}');
   } catch {
     return {
       statusCode: 400,
       headers: CORS_HEADERS,
-      body: JSON.stringify({ error: 'Invalid JSON body' }),
+      body: JSON.stringify({ error: 'Corp JSON invalid' }),
     };
   }
 
@@ -61,46 +52,51 @@ export const handler: Handler = async (event) => {
     return {
       statusCode: 400,
       headers: CORS_HEADERS,
-      body: JSON.stringify({ error: 'Missing level or windSpeed' }),
+      body: JSON.stringify({ error: 'Lipsește level sau windSpeed' }),
     };
   }
 
-  // Construiește notificarea de alertă meteo
-  const notification = new OneSignal.Notification();
-  notification.app_id = APP_ID;
-  notification.headings = { en: `Alertă ${level.toUpperCase()}` };
-  notification.contents = {
-    en: `${level.toUpperCase()}: Vânt de ${windSpeed} km/h detectat. Luați măsuri de siguranță!`,
+  const payload = {
+    clientId: CLIENT_ID,
+    clientSecret: CLIENT_SECRET,
+    notificationId: 'weather-alert', // Definit în dashboard-ul NotificationAPI
+    recipients: [{ userId: 'all-users' }], // Trimite la toți utilizatorii abonați
+    data: {
+      title: `Alertă ${level.toUpperCase()}`,
+      body: `${level.toUpperCase()}: Vânt de ${windSpeed} km/h detectat. Luați măsuri de siguranță!`,
+      url: 'https://wind.qub3.uk',
+    },
+    channels: channels || ['webPush', 'email'], // Canale implicite sau specificate
   };
-  notification.url = 'https://wind.qub3.uk';
-
-  if (channels?.length) {
-    notification.included_segments = ['Subscribed Users'];
-  } else {
-    notification.included_segments = ['Subscribed Users'];
-  }
-
-  const configuration = OneSignal.createConfiguration({
-    restApiKey: RESTKEY,
-  });
-  const client = new OneSignal.DefaultApi(configuration);
 
   try {
-    const response = await client.createNotification(notification);
+    const response = await fetch('https://app.notificationapi.com/api/v1/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Eroare NotificationAPI: ${text}`);
+    }
+
     return {
       statusCode: 200,
       headers: CORS_HEADERS,
-      body: JSON.stringify({ ok: true, response }),
+      body: JSON.stringify({ ok: true, response: await response.json() }),
     };
   } catch (err: any) {
-    console.error('OneSignal error:', err);
+    console.error('Eroare NotificationAPI:', err);
     return {
       statusCode: 500,
       headers: CORS_HEADERS,
       body: JSON.stringify({
         ok: false,
-        error: 'Failed to send alert notification via OneSignal',
-        detail: err.message || 'Unknown error',
+        error: 'Eroare la trimiterea alertei via NotificationAPI',
+        detail: err.message || 'Eroare necunoscută',
       }),
     };
   }

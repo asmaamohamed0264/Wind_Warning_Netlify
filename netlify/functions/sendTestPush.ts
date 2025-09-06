@@ -1,18 +1,5 @@
 // netlify/functions/sendTestPush.ts
 import type { Handler } from '@netlify/functions';
-import * as OneSignal from '@onesignal/node-onesignal';
-
-type Req = {
-  level?: 'caution' | 'warning' | 'danger';
-  windSpeed?: number;
-  channels?: Array<'push' | 'email' | 'sms'>;
-  include_subscription_ids?: string[];
-  include_email_tokens?: string[];
-  include_phone_numbers?: string[];
-  title?: string;
-  message?: string;
-  url?: string;
-};
 
 const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -21,7 +8,6 @@ const CORS_HEADERS: Record<string, string> = {
 };
 
 export const handler: Handler = async (event) => {
-  // CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 204,
@@ -34,78 +20,75 @@ export const handler: Handler = async (event) => {
     return {
       statusCode: 405,
       headers: CORS_HEADERS,
-      body: 'Method Not Allowed',
+      body: 'Metodă nepermisă',
     };
   }
 
-  // Citește DOAR env-urile server-side
-  const APP_ID = process.env.ONESIGNAL_APP_ID as string | undefined;
-  const RESTKEY = process.env.ONESIGNAL_REST_API_KEY as string | undefined;
+  const CLIENT_ID = process.env.NOTIFICATIONAPI_CLIENT_ID as string | undefined;
+  const CLIENT_SECRET = process.env.NOTIFICATIONAPI_CLIENT_SECRET as string | undefined;
 
-  if (!APP_ID || !RESTKEY) {
+  if (!CLIENT_ID || !CLIENT_SECRET) {
     return {
       statusCode: 500,
       headers: CORS_HEADERS,
-      body: JSON.stringify({ error: 'Missing ONESIGNAL_APP_ID or ONESIGNAL_REST_API_KEY' }),
+      body: JSON.stringify({ error: 'Lipsește NOTIFICATIONAPI_CLIENT_ID sau NOTIFICATIONAPI_CLIENT_SECRET' }),
     };
   }
 
-  let body: Req;
+  let body;
   try {
     body = JSON.parse(event.body || '{}');
   } catch {
     return {
       statusCode: 400,
       headers: CORS_HEADERS,
-      body: JSON.stringify({ error: 'Invalid JSON body' }),
+      body: JSON.stringify({ error: 'Corp JSON invalid' }),
     };
   }
 
-  const { level, windSpeed, include_subscription_ids, include_email_tokens, include_phone_numbers, title, message, url } = body;
+  const { subscriptionId, title, message, url } = body;
 
-  // Construiește notificarea de test
-  const notification = new OneSignal.Notification();
-  notification.app_id = APP_ID;
-  notification.headings = { en: title || `Test alertă ${level || 'vânt'}` };
-  notification.contents = { en: message || `${level || 'danger'} - Vânt de ${windSpeed || 32} km/h detectat. Test notificare!` };
-  notification.url = url || 'https://wind.qub3.uk';
-
-  // Handle targeted notifications
-  if (include_subscription_ids?.length) {
-    notification.include_subscription_ids = include_subscription_ids;
-  } else if (include_email_tokens?.length) {
-    notification.include_email_tokens = include_email_tokens;
-  } else if (include_phone_numbers?.length) {
-    notification.include_phone_numbers = include_phone_numbers;
-  } else {
-    notification.included_segments = ['Subscribed Users'];
-  }
-
-  const configuration = OneSignal.createConfiguration({
-    restApiKey: RESTKEY,
-  });
-  const client = new OneSignal.DefaultApi(configuration);
+  const payload = {
+    clientId: CLIENT_ID,
+    clientSecret: CLIENT_SECRET,
+    notificationId: 'test-notification', // Definit în dashboard-ul NotificationAPI
+    recipients: subscriptionId ? [{ userId: subscriptionId }] : [{ userId: 'default-user' }],
+    data: {
+      title: title || 'Test alertă vânt',
+      body: message || 'Level danger, Wind 32 km/h',
+      url: url || 'https://wind.qub3.uk',
+    },
+    channels: ['webPush'], // Canale implicite pentru test
+  };
 
   try {
-    console.log('🐛 DEBUG: Sending notification to OneSignal...');
-    console.log('🐛 DEBUG: Notification payload:', JSON.stringify(notification, null, 2));
-    const response = await client.createNotification(notification);
-    console.log('🐛 DEBUG: OneSignal response:', response);
+    const response = await fetch('https://app.notificationapi.com/api/v1/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Eroare NotificationAPI: ${text}`);
+    }
+
     return {
       statusCode: 200,
       headers: CORS_HEADERS,
-      body: JSON.stringify({ ok: true, response }),
+      body: JSON.stringify({ ok: true, response: await response.json() }),
     };
   } catch (err: any) {
-    console.error('❌ OneSignal error:', err);
-    console.error('❌ Error details:', err.response?.data || err.message);
+    console.error('Eroare NotificationAPI:', err);
     return {
       statusCode: 500,
       headers: CORS_HEADERS,
       body: JSON.stringify({
         ok: false,
-        error: 'Failed to send test notification via OneSignal',
-        detail: err.message || 'Unknown error',
+        error: 'Eroare la trimiterea notificării de test via NotificationAPI',
+        detail: err.message || 'Eroare necunoscută',
       }),
     };
   }
