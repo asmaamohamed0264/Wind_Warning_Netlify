@@ -298,9 +298,9 @@ export function NotificationSettings() {
 
                     console.log('🐛 DEBUG: Sending test notification to:', subId);
                     const result = await sendServerTestNotification({
-                      include_subscription_ids: [subId],
                       level: 'danger',
                       windSpeed: 32,
+                      channels: ['push', 'email', 'sms'],
                     });
 
                     console.log('🐛 DEBUG: Server response:', result);
