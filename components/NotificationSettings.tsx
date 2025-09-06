@@ -300,7 +300,7 @@ export function NotificationSettings() {
                     const result = await sendServerTestNotification({
                       level: 'danger',
                       windSpeed: 32,
-                      channels: ['push', 'email', 'sms'],
+                      channels: ['push'],
                     });
 
                     console.log('🐛 DEBUG: Server response:', result);
