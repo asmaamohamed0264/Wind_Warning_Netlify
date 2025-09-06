@@ -276,6 +276,7 @@ export function NotificationSettings() {
             <div className="pt-4 border-t border-gray-700">
               <Button
                 onClick={async () => {
+                    alert('🐛 DEBUG: Test button clicked!');
                     console.log('🐛 DEBUG: Test button clicked!');
                     console.log('🐛 DEBUG: Push enabled:', pushEnabled);
                     console.log('🐛 DEBUG: Email address:', emailAddress);
