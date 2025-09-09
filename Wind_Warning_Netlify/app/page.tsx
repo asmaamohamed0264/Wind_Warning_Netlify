@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { oneSignal } from '@/lib/onesignal';
 import { WeatherDashboard } from '@/components/WeatherDashboard';
 import { AlertPanel } from '@/components/AlertPanel';
 import { ThresholdControl } from '@/components/ThresholdControl';
@@ -22,6 +23,12 @@ export default function Home() {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [isOnline, setIsOnline] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure we're on the client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Load saved threshold from localStorage
   useEffect(() => {
@@ -61,11 +68,17 @@ export default function Home() {
   useEffect(() => {
     fetchWeatherData();
     const interval = setInterval(fetchWeatherData, 300000); // Update every 5 minutes
+    
+    // Inițializează OneSignal doar pe client
+    if (isClient) {
+      oneSignal.initialize();
+    }
+    
     return () => clearInterval(interval);
-  }, []);
+  }, [isClient]);
 
   useEffect(() => {
-    if (forecastData.length > 0) {
+    if (forecastData && forecastData.length > 0) {
       analyzeForecasts();
     }
   }, [forecastData, alertThreshold]);
@@ -85,7 +98,7 @@ export default function Home() {
       
       const data = await response.json();
       setWeatherData(data.current);
-      setForecastData(data.forecast);
+      setForecastData(data.forecast || []);
       setLastUpdate(new Date());
       setLoading(false);
       
@@ -106,6 +119,10 @@ export default function Home() {
   };
 
   const analyzeForecasts = () => {
+    if (!forecastData || forecastData.length === 0) {
+      return;
+    }
+    
     const next8Hours = forecastData.slice(0, 8);
     const dangerousWinds = next8Hours.filter(forecast => 
       forecast.windSpeed > alertThreshold || forecast.windGust > alertThreshold
@@ -158,19 +175,7 @@ export default function Home() {
   const triggerNotifications = async (level: AlertLevel, windSpeed: number, time: string) => {
     const alertMessage = generateAlertMessage(level, windSpeed);
 
-    // Browser Push Notification
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('🌪️ Alertă Vânt Grand Arena', {
-        body: alertMessage,
-        icon: '/1000088934-modified.png',
-        badge: '/1000088934-modified.png',
-        tag: 'wind-alert',
-        requireInteraction: level === 'danger',
-        silent: false
-      });
-    }
-
-    // SMS Notifications via Netlify Function
+    // Toate notificările prin OneSignal (Push, SMS, Email)
     try {
       await fetch('/api/send-alerts', {
         method: 'POST',
@@ -184,26 +189,10 @@ export default function Home() {
           message: alertMessage
         }),
       });
+      
+      console.log(`OneSignal notification sent: Level ${level}, Wind ${Math.round(windSpeed)} km/h`);
     } catch (error) {
-      console.error('Failed to send SMS alerts:', error);
-    }
-
-    // Email Notifications
-    if (localStorage.getItem('email_enabled') === 'true') {
-      try {
-        await fetch('/api/email-alert', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            level, 
-            windSpeed: Math.round(windSpeed), 
-            message: alertMessage 
-          }),
-        });
-        console.log('Email alerts triggered successfully');
-      } catch (error) {
-        console.error('Failed to send email alerts:', error);
-      }
+      console.error('Failed to send OneSignal alerts:', error);
     }
   };
 
@@ -312,7 +301,7 @@ export default function Home() {
               <WeatherDashboard 
                 data={weatherData} 
                 alertLevel={alertLevel}
-                forecast={forecastData.slice(0, 8)}
+                forecast={forecastData ? forecastData.slice(0, 8) : []}
                 threshold={alertThreshold}
               />
             )}
