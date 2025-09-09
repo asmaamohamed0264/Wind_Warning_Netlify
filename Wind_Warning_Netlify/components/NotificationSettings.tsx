@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { oneSignal } from '@/lib/onesignal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,38 +10,36 @@ import { Label } from '@/components/ui/label';
 import { Bell, Smartphone, Mail, Check, X, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
-const urlBase64ToUint8Array = (base64String: string) => {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-};
-
 export function NotificationSettings() {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushSupported, setPushSupported] = useState(false);
-  const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
   const [smsEnabled, setSmsEnabled] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [isSubscribing, setIsSubscribing] = useState(false);
-  const [isUnsubscribing, setIsUnsubscribing] = useState(false);
   const [emailAddress, setEmailAddress] = useState('');
   const [isEmailSubscribed, setIsEmailSubscribed] = useState(false);
-  const [isEmailLoading, setIsEmailLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
 
   useEffect(() => {
-    // Check if push notifications are supported
-    if ('Notification' in window) {
-      setPushSupported(true);
-      setPushPermission(Notification.permission);
-      setPushEnabled(Notification.permission === 'granted');
+    if (typeof window === 'undefined') {
+      return;
     }
+    
+    const initOneSignal = async () => {
+      await oneSignal.initialize();
+      const supported = typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator;
+      setPushSupported(supported);
+      
+      const isSubscribed = await oneSignal.isSubscribed();
+      setPushEnabled(isSubscribed);
+      
+      if ('Notification' in window) {
+        setPushPermission(Notification.permission);
+      }
+    };
 
-    // Load saved SMS preferences
+    initOneSignal();
+
     const savedPhone = localStorage.getItem('sms_phone_number');
     const savedSmsEnabled = localStorage.getItem('sms_enabled') === 'true';
     
@@ -49,7 +48,6 @@ export function NotificationSettings() {
       setSmsEnabled(savedSmsEnabled);
     }
 
-    // Load saved Email preferences
     const savedEmail = localStorage.getItem('email_address');
     const savedEmailEnabled = localStorage.getItem('email_enabled') === 'true';
     if (savedEmail) {
@@ -60,148 +58,114 @@ export function NotificationSettings() {
 
   const handlePushToggle = async (enabled: boolean) => {
     if (!pushSupported) {
-      toast.error('Push notifications are not supported in your browser');
+      toast.error('Notificările push nu sunt suportate în acest browser');
       return;
     }
 
+    setIsLoading(true);
+
     if (enabled) {
       try {
-        const permission = await Notification.requestPermission();
-        setPushPermission(permission);
+        const success = await oneSignal.subscribe();
 
-        if (permission === 'granted') {
-          const registration = await navigator.serviceWorker.register('/sw.js');
-          const subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(
-              process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY as string
-            ),
-          });
-          await fetch('/api/push-subscription', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ subscription }),
-          });
+        if (success) {
           setPushEnabled(true);
-          toast.success('Push notifications enabled successfully!');
+          toast.success('Notificările push au fost activate cu succes!');
+          
+          await oneSignal.configureUser({
+            email: emailAddress || undefined,
+            phoneNumber: phoneNumber || undefined,
+            location: 'Aleea Someșul Cald',
+          });
         } else {
           setPushEnabled(false);
-          toast.error('Push notification permission denied');
+          toast.error('Permisiunea pentru notificări a fost refuzată');
         }
       } catch (error) {
-        console.error('Error requesting notification permission:', error);
-        toast.error('Failed to enable push notifications');
+        console.error('Error enabling OneSignal notifications:', error);
+        toast.error('Eroare la activarea notificărilor push');
       }
     } else {
-      setPushEnabled(false);
-      toast.success('Push notifications disabled');
+      try {
+        const success = await oneSignal.unsubscribe();
+        
+        if (success) {
+          setPushEnabled(false);
+          toast.success('Notificările push au fost dezactivate');
+        } else {
+          toast.error('Eroare la dezactivarea notificărilor');
+        }
+      } catch (error) {
+        console.error('Error disabling OneSignal notifications:', error);
+        toast.error('Eroare la dezactivarea notificărilor push');
+      }
     }
+    
+    setIsLoading(false);
   };
 
   const validatePhoneNumber = (phone: string): boolean => {
-    // Enhanced Romanian phone number validation
-    const cleanPhone = phone.replace(/[\s\-\(\)]/g, ''); // Remove spaces, dashes, parentheses
-    
-    // Romanian formats: +40XXXXXXXXX, 0040XXXXXXXXX, 07XXXXXXXX, 07XX XXX XXX
-    const romanianRegex = /^(\+40|0040|0)[6-79]\d{8}$/;
-    
-    // International format (more flexible)
-    const internationalRegex = /^\+[1-9]\d{8,14}$/;
-    
-    // Check if it matches Romanian or international format
-    const isRomanian = romanianRegex.test(cleanPhone);
-    const isInternational = internationalRegex.test(cleanPhone);
-    
-    console.log('Phone validation:', { 
-      original: phone, 
-      cleaned: cleanPhone, 
-      isRomanian, 
-      isInternational 
-    });
-    
-    return isRomanian || isInternational;
+    const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+    const roE164 = /^\+40\d{9}$/;
+    const ok = roE164.test(cleanPhone);
+    console.log('Phone validation:', { original: phone, cleaned: cleanPhone, ok });
+    return ok;
   };
 
   const handleSmsSubscribe = async () => {
     const trimmedPhone = phoneNumber.trim();
     
     if (!trimmedPhone) {
-      toast.error('Please enter a phone number');
+      toast.error('Vă rugăm introduceți un număr de telefon');
       return;
     }
 
     if (!validatePhoneNumber(trimmedPhone)) {
-      toast.error('Vă rugăm introduceți un număr valid (ex: +40712345678, 0712345678)');
+      toast.error('Vă rugăm introduceți un număr valid în format +40 (ex: +40712345678)');
       return;
     }
 
-    setIsSubscribing(true);
+    setIsLoading(true);
 
     try {
-      const response = await fetch('/api/sms-subscription', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ phoneNumber: trimmedPhone }),
-      });
-
-      const data = await response.json();
+      await oneSignal.setSMSNumber(trimmedPhone);
       
-      console.log('SMS subscription response:', { status: response.status, data });
-
-      if (response.ok) {
-        setSmsEnabled(true);
-        localStorage.setItem('sms_phone_number', trimmedPhone);
-        localStorage.setItem('sms_enabled', 'true');
-        toast.success('Abonare SMS reușită! Veți primi un mesaj de confirmare.');
-      } else {
-        // Handle specific error messages
-        if (data.error && data.error.includes('Invalid phone number')) {
-          toast.error('Numărul de telefon nu este valid sau serviciul SMS este temporar indisponibil');
-        } else if (data.error && data.error.includes('Twilio')) {
-          toast.error('Serviciul SMS nu este configurat. Contactați administratorul.');
-        } else {
-          toast.error(data.error || 'Eroare la abonarea SMS. Încercați din nou.');
-        }
-      }
-    } catch (error) {
-      console.error('SMS subscription error:', error);
-      toast.error('Eroare de conexiune. Verificați internetul și încercați din nou.');
-    } finally {
-      setIsSubscribing(false);
-    }
-  };
-
-  const handleSmsUnsubscribe = async () => {
-    const trimmedPhone = phoneNumber.trim();
-    setIsUnsubscribing(true);
-
-    try {
-      const response = await fetch('/api/sms-subscription', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ phoneNumber: trimmedPhone }),
+      setSmsEnabled(true);
+      localStorage.setItem('sms_phone_number', trimmedPhone);
+      localStorage.setItem('sms_enabled', 'true');
+      
+      await oneSignal.configureUser({
+        email: emailAddress || undefined,
+        phoneNumber: trimmedPhone,
+        location: 'Aleea Someșul Cald',
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setSmsEnabled(false);
-        localStorage.setItem('sms_enabled', 'false');
-        toast.success('Dezabonare SMS reușită');
-      } else {
-        toast.error(data.error || 'Eroare la dezabonare SMS');
-      }
+      
+      toast.success('Abonare SMS reușită!');
     } catch (error) {
-      console.error('SMS unsubscription error:', error);
-      toast.error('Eroare la dezabonare. Încercați din nou.');
+      console.error('OneSignal SMS subscription error:', error);
+      toast.error('Eroare la configurarea SMS-ului. Încercați din nou.');
     } finally {
-      setIsUnsubscribing(false);
+      setIsLoading(false);
     }
   };
+
+  // ✅ DEZABONARE SMS (v16 corectat)
+  const handleSmsUnsubscribe = async () => {
+  setIsLoading(true);
+  try {
+    await oneSignal.removeSms(phoneNumber.trim());
+    setSmsEnabled(false);
+    localStorage.removeItem('sms_phone_number');
+    localStorage.setItem('sms_enabled', 'false');
+    toast.success('Dezabonare SMS reușită');
+  } catch (error) {
+    console.error('OneSignal SMS unsubscription error:', error);
+    toast.error('Eroare la dezabonare SMS. Încercați din nou.');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -214,28 +178,46 @@ export function NotificationSettings() {
       return;
     }
     
-    setIsEmailLoading(true);
+    setIsLoading(true);
     
-    // Simulare abonare (în aplicația reală s-ar face un apel API)
-    setTimeout(() => {
+    try {
+      await oneSignal.setEmail(emailAddress.trim());
+      
       setIsEmailSubscribed(true);
       localStorage.setItem('email_address', emailAddress.trim());
       localStorage.setItem('email_enabled', 'true');
-      toast.success(`Adresa ${emailAddress} a fost abonată cu succes la alertele email!`);
-      setIsEmailLoading(false);
-    }, 800);
+      
+      await oneSignal.configureUser({
+        email: emailAddress.trim(),
+        phoneNumber: phoneNumber || undefined,
+        location: 'Aleea Someșul Cald',
+      });
+      
+      toast.success(`Adresa ${emailAddress} a fost configurată!`);
+    } catch (error) {
+      console.error('OneSignal email configuration error:', error);
+      toast.error('Eroare la configurarea email-ului. Încercați din nou.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleEmailUnsubscribe = () => {
-    setIsEmailLoading(true);
-    
-    setTimeout(() => {
-      setIsEmailSubscribed(false);
-      localStorage.setItem('email_enabled', 'false');
-      toast.success(`Adresa ${emailAddress} a fost dezabonată de la alertele email.`);
-      setIsEmailLoading(false);
-    }, 500);
-  };
+  // ✅ DEZABONARE EMAIL (v16 corectat)
+  const handleEmailUnsubscribe = async () => {
+  setIsLoading(true);
+  try {
+    await oneSignal.removeEmail(emailAddress.trim());
+    setIsEmailSubscribed(false);
+    localStorage.removeItem('email_address');
+    localStorage.setItem('email_enabled', 'false');
+    toast.success('Email dezactivat pentru alerte.');
+  } catch (error) {
+    console.error('OneSignal email unsubscription error:', error);
+    toast.error('Eroare la dezactivare email. Încercați din nou.');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const maskEmail = (email: string): string => {
     if (!email || !email.includes('@')) return email;
@@ -243,12 +225,12 @@ export function NotificationSettings() {
     const [localPart, domain] = email.split('@');
     if (localPart.length <= 2) return email;
     
-    // Păstrează primele 2 caractere și ultimele 2 caractere din partea locală
-    const maskedLocal = localPart.substring(0, 2) + '*'.repeat(Math.max(localPart.length - 4, 1)) + localPart.substring(localPart.length - 2);
+    const maskedLocal =
+      localPart.substring(0, 2) + '*'.repeat(Math.max(localPart.length - 4, 1)) + localPart.substring(localPart.length - 2);
     
-    // Pentru domeniu, păstrează doar prima literă și restul după punct
     const [domainName, ...domainExtension] = domain.split('.');
-    const maskedDomain = domainName.charAt(0) + '*'.repeat(Math.max(domainName.length - 1, 1)) + '.' + domainExtension.join('.');
+    const maskedDomain =
+      domainName.charAt(0) + '*'.repeat(Math.max(domainName.length - 1, 1)) + '.' + domainExtension.join('.');
     
     return `${maskedLocal}@${maskedDomain}`;
   };
@@ -274,7 +256,7 @@ export function NotificationSettings() {
             <Switch
               checked={pushEnabled}
               onCheckedChange={handlePushToggle}
-              disabled={!pushSupported}
+              disabled={isLoading}
             />
           </div>
           
@@ -320,38 +302,38 @@ export function NotificationSettings() {
               <Input
                 id="phone"
                 type="tel"
-                placeholder="+40712345678 sau 0712345678"
+                placeholder="+40712345678"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 className="mt-1 bg-gray-700/50 border-gray-600 text-white placeholder-gray-400"
                 disabled={smsEnabled}
               />
               <p className="text-xs text-gray-500 mt-1">
-                Acceptăm numere românești (+40) și internaționale
+                Introduceți numărul în format românesc cu prefix +40 (ex: +40712345678)
               </p>
             </div>
 
             {!smsEnabled ? (
               <Button
                 onClick={handleSmsSubscribe}
-                disabled={isSubscribing || !phoneNumber.trim()}
+                disabled={isLoading || !phoneNumber.trim()}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white"
               >
-                {isSubscribing ? 'Se abonează...' : 'Abonează-te la Alerte SMS'}
+                {isLoading ? 'Se configurează...' : 'Configurează SMS'}
               </Button>
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center text-xs text-green-400 mb-2">
                   <Check className="h-3 w-3 mr-1" />
-                  Alertele SMS sunt activate pentru {phoneNumber}
+                  SMS configurat: {phoneNumber}
                 </div>
                 <Button
                   onClick={handleSmsUnsubscribe}
-                  disabled={isUnsubscribing}
+                  disabled={isLoading}
                   variant="outline"
                   className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
                 >
-                  {isUnsubscribing ? 'Se dezabonează...' : 'Dezabonează-te de la SMS'}
+                  {isLoading ? 'Se dezactivează...' : 'Dezactivează SMS'}
                 </Button>
               </div>
             )}
@@ -382,46 +364,70 @@ export function NotificationSettings() {
                 value={emailAddress}
                 onChange={(e) => setEmailAddress(e.target.value)}
                 className="mt-1 bg-gray-700/50 border-gray-600 text-white placeholder-gray-400"
-                disabled={isEmailSubscribed}
+                disabled={!pushSupported || isLoading}
               />
             </div>
 
             {!isEmailSubscribed ? (
               <Button
                 onClick={handleEmailSubscribe}
-                disabled={isEmailLoading || !emailAddress.trim()}
+                disabled={isLoading || !emailAddress.trim()}
                 className="w-full bg-green-600 hover:bg-green-700 text-white"
               >
-                {isEmailLoading ? 'Se abonează...' : 'Abonează-te la Alerte Email'}
+                {isLoading ? 'Se configurează...' : 'Configurează Email'}
               </Button>
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center text-xs text-green-400 mb-2">
                   <Check className="h-3 w-3 mr-1" />
-                  Alertele email sunt activate pentru {maskEmail(emailAddress)}
+                  Email configurat: {maskEmail(emailAddress)}
                 </div>
                 <Button
                   onClick={handleEmailUnsubscribe}
-                  disabled={isEmailLoading}
+                  disabled={isLoading}
                   variant="outline"
                   className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
                 >
-                  {isEmailLoading ? 'Se dezabonează...' : 'Dezabonează-te de la Email'}
+                  {isLoading ? 'Se dezactivează...' : 'Dezactivează Email'}
                 </Button>
               </div>
             )}
           </div>
         </div>
 
-        {/* Important Notice */}
-        <div className="bg-gray-700/50 rounded-lg p-3 border-l-4 border-blue-400">
-          <h4 className="text-sm font-semibold text-white mb-1">Notă Importantă</h4>
-          <p className="text-xs text-gray-300 leading-relaxed">
-            Alertele sunt trimise pentru viteze ale vântului care depășesc pragul configurat. 
-            Pentru SMS se pot aplica tarifele standard de mesagerie. Te poți dezabona oricând 
-            din orice tip de notificare.
+        {/* Info Section */}
+        <div className="space-y-2 border-t border-gray-700 pt-4">
+          {!pushSupported && (
+            <div className="flex items-center text-xs text-yellow-400 mb-2">
+              <AlertCircle className="h-3 w-3 mr-1" />
+              Notificările push nu sunt disponibile în acest browser
+            </div>
+          )}
+          <p className="text-xs text-gray-500">
+            Alertele sunt trimise când vitezele vântului depășesc pragul configurat.
+            Te poți dezabona oricând din orice tip de notificare.
           </p>
+          {pushEnabled && (
+            <div className="flex items-center text-xs text-green-400">
+              <Check className="h-3 w-3 mr-1" />
+              Notificări Push activate
+            </div>
+          )}
         </div>
+        
+        {/* Test Notification Button */}
+        {pushEnabled && (
+          <div className="pt-4 border-t border-gray-700">
+            <Button
+              onClick={() => oneSignal.sendTestNotification()}
+              disabled={isLoading}
+              variant="outline"
+              className="w-full border-blue-600 text-blue-400 hover:bg-blue-900/20"
+            >
+              🧪 Trimite Notificare de Test
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

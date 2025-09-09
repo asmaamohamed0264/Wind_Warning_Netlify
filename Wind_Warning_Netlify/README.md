@@ -1,6 +1,6 @@
 # Wind Warning Bucharest 🌪️
 
-A production-ready wind monitoring and early warning system for Bucharest, Romania. Built with Next.js and deployed on Netlify with serverless functions.
+A production-ready wind monitoring and early warning system for Bucharest, Romania. Built with Next.js and deployed on Netlify with serverless functions. Notifications (Push, SMS, Email) are unified via OneSignal.
 
 ## 🚀 Features
 
@@ -19,8 +19,7 @@ A production-ready wind monitoring and early warning system for Bucharest, Roman
 - 🔧 **Netlify Functions** for serverless API endpoints
 - 🎨 **Tailwind CSS** with shadcn/ui components
 - 📊 **Recharts** for data visualization
-- 🔔 **Push Notifications** with Web Push API
-- 📱 **SMS Integration** via Twilio API
+- 🔔 **Unified Notifications** with OneSignal (Push, SMS, Email)
 - 🌡️ **OpenWeatherMap API** for weather data
 - 💾 **Local Storage** for user preferences
 
@@ -30,27 +29,30 @@ A production-ready wind monitoring and early warning system for Bucharest, Roman
 - Node.js 18+ 
 - Netlify account
 - OpenWeatherMap API key
-- Twilio account (optional, for SMS)
+- OneSignal account (App ID + REST API Key)
 
 ### Environment Variables
 
-Create these environment variables in your Netlify site settings:
+Set these environment variables in your Netlify site settings (All contexts):
 
 ```bash
-# Required - OpenWeatherMap API
+# Weather API (server)
 OPENWEATHER_API_KEY=your_openweather_api_key
+# Optional: Server-side cache TTL for weather (ms)
+WEATHER_CACHE_TTL_MS=120000
 
-# Optional - Twilio SMS (MVP works without these)
-TWILIO_ACCOUNT_SID=your_twilio_account_sid
-TWILIO_AUTH_TOKEN=your_twilio_auth_token
-TWILIO_PHONE_NUMBER=your_twilio_phone_number
+# OneSignal (server)
+VITE_ONESIGNAL_API_KEY=your_onesignal_rest_api_key
+VITE_ONESIGNAL_APP_ID=your_onesignal_app_id
 
-# Optional - SMS Subscribers (comma-separated phone numbers)
-SMS_SUBSCRIBERS=+40712345678,+40723456789
+# OneSignal (client)
+NEXT_PUBLIC_ONESIGNAL_APP_ID=your_onesignal_app_id
 
-# Web Push
-VAPID_PUBLIC_KEY=your_vapid_public_key
-VAPID_PRIVATE_KEY=your_vapid_private_key
+# CORS for send-alerts function (optional, default "*")
+ALLOWED_ORIGIN=https://your-live-domain.example
+
+# Site URL used in notifications (optional)
+URL=https://your-live-domain.example
 ```
 
 ### Local Development
@@ -75,12 +77,13 @@ npm run build
 3. **Set Environment Variables**: Add the variables listed above
 4. **Deploy**: Push to main branch for automatic deployment
 
-### Push Notifications
+### Notifications (OneSignal)
 
-1. Generate VAPID keys using `npx web-push generate-vapid-keys` and add them to your environment variables.
-2. Ensure your browser allows notifications and load the site over HTTPS.
-3. Toggle the "Notificări Push Browser" switch in the settings to subscribe.
-4. A test notification confirms that push is configured correctly.
+1. Create a OneSignal app and copy the App ID and REST API Key.
+2. Add `VITE_ONESIGNAL_APP_ID`, `VITE_ONESIGNAL_API_KEY` and `NEXT_PUBLIC_ONESIGNAL_APP_ID` to Netlify env vars.
+3. In the UI (Settings → Notifications), enable "Notificări Push Browser" to subscribe and grant permission.
+4. Use the "Trimite Notificare de Test" button to validate delivery.
+5. Optional: configure Email and SMS via OneSignal in the same settings panel.
 
 ## 📡 API Endpoints
 
@@ -88,35 +91,19 @@ npm run build
 ```
 GET /api/weather
 ```
-Returns current weather and 8-hour forecast for Bucharest.
+Returns current weather and 8 data points (24h) forecast for Bucharest.
 
-### SMS Subscription
-```
-POST /api/sms-subscription
-Body: { "phoneNumber": "+40712345678" }
-```
-
-```
-DELETE /api/sms-subscription
-Body: { "phoneNumber": "+40712345678" }
-```
-
-### Push Subscription
-```
-POST /api/push-subscription
-Body: { "subscription": { ... } }
-```
-
-### Send Alerts
+### Send Alerts (OneSignal)
 ```
 POST /api/send-alerts
-Body: { 
-  "level": "warning",
-  "windSpeed": 65,
-  "time": "2024-07-13T14:00:00Z",
-  "message": "Strong winds forecasted..."
+Body: {
+  "level": "caution" | "warning" | "danger" | "normal" (optional),
+  "windSpeed": number,  # km/h
+  "time": string,       # ISO timestamp
+  "message": string     # custom message (optional)
 }
 ```
+Note: `/api/send-alerts` is redirected to the Netlify function `send-alerts-onesignal`.
 
 ## 🎯 User Guide
 
@@ -173,9 +160,8 @@ components/
 ### Backend (Netlify Functions)
 ```
 netlify/functions/
-├── weather.ts            # OpenWeatherMap integration
-├── send-alerts.ts        # SMS alert sending
-└── sms-subscription.ts   # SMS subscription management
+├── weather.ts                # OpenWeatherMap integration (with simple in-memory cache)
+└── send-alerts-onesignal.ts  # Unified alerts via OneSignal
 ```
 
 ### Data Types
