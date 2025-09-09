@@ -9,15 +9,6 @@ interface ForecastChartProps {
 }
 
 export function ForecastChart({ data, threshold = 50 }: ForecastChartProps) {
-  // Safety check for data
-  if (!data || !Array.isArray(data) || data.length === 0) {
-    return (
-      <div className="w-full h-80 flex items-center justify-center text-gray-400">
-        <p>Nu sunt disponibile date de prognoză</p>
-      </div>
-    );
-  }
-
   const chartData = data.map((forecast, index) => {
     const time = new Date(forecast.time);
     const hour = time.getHours();

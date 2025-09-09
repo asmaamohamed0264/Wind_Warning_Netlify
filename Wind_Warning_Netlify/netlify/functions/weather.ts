@@ -1,19 +1,5 @@
 import type { Handler } from '@netlify/functions';
 
-// Safe env accessor to avoid build-time constant folding
-const getEnv = (key: string) => (
-  (globalThis as any)?.['process']?.['env']?.[key] as string | undefined
-);
-
-// Simple in-memory cache to reduce upstream API calls (per warm function instance)
-const CACHE_TTL_MS = (() => {
-  const raw = getEnv('WEATHER_CACHE_TTL_MS');
-  const n = Number(raw);
-  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 120000; // default 2 minutes
-})();
-let cacheBody: string | null = null;
-let cacheTime = 0;
-
 const handler: Handler = async (event, context) => {
   // Set CORS headers
   const headers = {
@@ -38,7 +24,7 @@ const handler: Handler = async (event, context) => {
     };
   }
 
-  const apiKey = getEnv('OPENWEATHER_API_KEY');
+  const apiKey = process.env.OPENWEATHER_API_KEY;
   
   if (!apiKey) {
     return {
@@ -49,16 +35,6 @@ const handler: Handler = async (event, context) => {
   }
 
   try {
-    // Serve from cache if fresh
-    const now = Date.now();
-    if (cacheBody && (now - cacheTime) < CACHE_TTL_MS) {
-      return {
-        statusCode: 200,
-        headers: { ...headers, 'X-Cache': 'HIT' },
-        body: cacheBody,
-      };
-    }
-
     // Bucharest coordinates
     const lat = 44.4268;
     const lon = 26.1025;
@@ -110,19 +86,13 @@ const handler: Handler = async (event, context) => {
       icon: item.weather[0].icon,
     }));
 
-    const body = JSON.stringify({
-      current,
-      forecast,
-    });
-
-    // Update cache
-    cacheBody = body;
-    cacheTime = now;
-
     return {
       statusCode: 200,
-      headers: { ...headers, 'X-Cache': 'MISS' },
-      body,
+      headers,
+      body: JSON.stringify({
+        current,
+        forecast,
+      }),
     };
   } catch (error) {
     console.error('Error fetching weather data:', error);

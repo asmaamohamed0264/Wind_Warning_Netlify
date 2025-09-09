@@ -144,7 +144,7 @@ export function AlertPanel({ alert }: AlertPanelProps) {
           </div>
         </div>
 
-        {Array.isArray(getSafetyRecommendations(alert.level)) && getSafetyRecommendations(alert.level).length > 0 && (
+        {getSafetyRecommendations(alert.level).length > 0 && (
           <div className="border-t border-gray-700 pt-4">
             <h3 className="text-lg font-semibold text-white mb-3 flex items-center">
               <Shield className="h-5 w-5 mr-2 text-blue-400" />
