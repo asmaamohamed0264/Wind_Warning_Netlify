@@ -434,20 +434,6 @@ export const handler: Handler = async (event) => {
       hasUserThreshold: !!body.userThreshold
     });
 
-    // DEBUGGING: Returnează informații despre condiții
-    const debugInfo = {
-      receivedBody: body,
-      conditions: {
-        hasWindSpeed: body.windSpeed !== undefined,
-        hasLocation: !!body.location,
-        hasUserThreshold: !!body.userThreshold,
-        windSpeedValue: body.windSpeed,
-        locationValue: body.location,
-        userThresholdValue: body.userThreshold
-      },
-      allConditionsMet: body.windSpeed !== undefined && body.location && body.userThreshold
-    };
-
     // Mod 1: Alerte personalizate cu AI pentru date meteo
     if (body.windSpeed !== undefined && body.location && body.userThreshold) {
       console.log('🎯 AI Mode triggered with data:', body);
@@ -529,10 +515,7 @@ export const handler: Handler = async (event) => {
       return {
         statusCode: 200,
         headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
-        body: JSON.stringify({
-          ...responseData,
-          debug: debugInfo
-        })
+        body: JSON.stringify(responseData)
       };
     }
 
