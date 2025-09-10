@@ -1,0 +1,42 @@
+// netlify/functions/send-alerts.ts
+import type { Handler } from '@netlify/functions';
+
+const REST_KEY = process.env.ONESIGNAL_REST_API_KEY!;
+const APP_ID =
+  process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID ||
+  process.env.VITE_ONESIGNAL_APP_ID ||
+  process.env.ONESIGNAL_APP_ID;
+
+export const handler: Handler = async (event) => {
+  if (!REST_KEY || !APP_ID) {
+    return new Response(JSON.stringify({ error: 'Missing OneSignal keys' }), { status: 500 });
+  }
+
+  try {
+    const body = event.body ? JSON.parse(event.body) : {};
+    const { heading = 'Weather alert', content = 'Check the latest forecast', url = 'https://wind.qub3.uk/' } = body;
+
+    const r = await fetch('https://api.onesignal.com/notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        Authorization: `Bearer ${REST_KEY}`, // OneSignal v2 REST
+      },
+      body: JSON.stringify({
+        app_id: APP_ID,
+        included_segments: ['Subscribed Users'],
+        headings: { en: heading },
+        contents: { en: content },
+        url,
+      }),
+    });
+
+    const data = await r.json();
+    if (!r.ok) {
+      return new Response(JSON.stringify({ error: 'OneSignal error', data }), { status: 502 });
+    }
+    return new Response(JSON.stringify({ ok: true, data }), { status: 200 });
+  } catch (e: any) {
+    return new Response(JSON.stringify({ error: e?.message ?? 'Unknown error' }), { status: 500 });
+  }
+};
