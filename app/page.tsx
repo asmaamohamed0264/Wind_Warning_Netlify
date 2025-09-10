@@ -90,7 +90,7 @@ export default function Home() {
 
     try {
       setError(null);
-      const response = await fetch('/api/weather');
+      const response = await fetch('/api/weather?q=Bucharest');
       
       if (!response.ok) {
         throw new Error(`Weather service error: ${response.status}`);
