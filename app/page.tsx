@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { oneSignal } from '@/lib/onesignal';
 import { WeatherDashboard } from '@/components/WeatherDashboard';
 import { AlertPanel } from '@/components/AlertPanel';
-import { ThresholdControl } from '@/components/ThresholdControl';
+import { AlertThresholdSettings } from '@/components/AlertThresholdSettings';
 import { NotificationSettings } from '@/components/NotificationSettings';
 import { WeatherData, ForecastData } from '@/types/weather';
 import { AlertLevel } from '@/types/alerts';
@@ -175,24 +175,40 @@ export default function Home() {
   const triggerNotifications = async (level: AlertLevel, windSpeed: number, time: string) => {
     const alertMessage = generateAlertMessage(level, windSpeed);
 
-    // Toate notificările prin OneSignal (Push, SMS, Email)
+    // Obține pragul personalizat al utilizatorului
+    const userThreshold = parseInt(localStorage.getItem('wind_alert_threshold') || '20', 10);
+
+    // Trimite notificări personalizate cu AI
     try {
-      await fetch('/api/send-alerts', {
+      const response = await fetch('/api/send-alerts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          level,
           windSpeed: Math.round(windSpeed),
-          time,
-          message: alertMessage
+          windGust: Math.round(windSpeed * 1.2), // Estimează rafalele
+          windDirection: weatherData?.windDirection || 0,
+          location: 'Aleea Someșul Cald, București',
+          alertLevel: level,
+          userThreshold: userThreshold,
+          userId: 'user_' + Date.now(), // ID temporar
+          forecast: forecastData.slice(0, 3) // Primele 3 ore din prognoză
         }),
       });
+
+      const result = await response.json();
       
-      console.log(`OneSignal notification sent: Level ${level}, Wind ${Math.round(windSpeed)} km/h`);
+      if (result.ok) {
+        console.log('AI personalized alerts sent:', result.data);
+        toast.success('Alerte personalizate trimise cu AI!');
+      } else {
+        console.error('Failed to send AI alerts:', result.error);
+        toast.error('Eroare la trimiterea alertelor personalizate');
+      }
     } catch (error) {
-      console.error('Failed to send OneSignal alerts:', error);
+      console.error('Failed to send AI alerts:', error);
+      toast.error('Eroare la trimiterea alertelor personalizate');
     }
   };
 
@@ -309,9 +325,8 @@ export default function Home() {
 
           {/* Controls Panel */}
           <div className="space-y-6">
-            <ThresholdControl
-              value={alertThreshold}
-              onChange={setAlertThreshold}
+            <AlertThresholdSettings
+              onThresholdChange={setAlertThreshold}
             />
             <NotificationSettings />
           </div>
