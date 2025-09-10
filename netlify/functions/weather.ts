@@ -1,140 +1,82 @@
+// netlify/functions/weather.ts
 import type { Handler } from '@netlify/functions';
 
-// Safe env accessor to avoid build-time constant folding
-const getEnv = (key: string) => (
-  (globalThis as any)?.['process']?.['env']?.[key] as string | undefined
-);
+const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY!;
+const WEATHER_CACHE_TTL_MS = Number(process.env.WEATHER_CACHE_TTL_MS ?? 120000); // 2 min default
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN ?? '*'; // tu ai https://wind.qub3.uk/
 
-// Simple in-memory cache to reduce upstream API calls (per warm function instance)
-const CACHE_TTL_MS = (() => {
-  const raw = getEnv('WEATHER_CACHE_TTL_MS');
-  const n = Number(raw);
-  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 120000; // default 2 minutes
-})();
-let cacheBody: string | null = null;
-let cacheTime = 0;
-
-const handler: Handler = async (event, context) => {
-  // Set CORS headers
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  };
-
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers,
-      body: '',
-    };
-  }
-
-  if (event.httpMethod !== 'GET') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method not allowed' }),
-    };
-  }
-
-  const apiKey = getEnv('OPENWEATHER_API_KEY');
-  
-  if (!apiKey) {
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: 'OpenWeather API key not configured' }),
-    };
-  }
-
+export const handler: Handler = async (event) => {
   try {
-    // Serve from cache if fresh
-    const now = Date.now();
-    if (cacheBody && (now - cacheTime) < CACHE_TTL_MS) {
-      return {
-        statusCode: 200,
-        headers: { ...headers, 'X-Cache': 'HIT' },
-        body: cacheBody,
-      };
+    if (!OPENWEATHER_API_KEY) {
+      return json({ error: 'Missing OPENWEATHER_API_KEY' }, 500);
     }
 
-    // Bucharest coordinates
-    const lat = 44.4268;
-    const lon = 26.1025;
-
-    // Fetch current weather
-    const currentResponse = await fetch(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`
-    );
-
-    if (!currentResponse.ok) {
-      throw new Error('Failed to fetch current weather');
+    // CORS preflight (dacă e chemată direct din browser)
+    if (event.httpMethod === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: corsHeaders(ALLOWED_ORIGIN),
+      });
     }
 
-    const currentData = await currentResponse.json();
+    const p = event.queryStringParameters || {};
+    const { lat, lon, q } = p;
 
-    // Fetch 5-day forecast (3-hour intervals)
-    const forecastResponse = await fetch(
-      `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`
-    );
-
-    if (!forecastResponse.ok) {
-      throw new Error('Failed to fetch forecast');
+    let url: string;
+    if (lat && lon) {
+      // One Call 3.0 – current + hourly/daily (în funcție de plan)
+      url =
+        `https://api.openweathermap.org/data/3.0/onecall?lat=${encodeURIComponent(lat)}` +
+        `&lon=${encodeURIComponent(lon)}&units=metric&appid=${OPENWEATHER_API_KEY}`;
+    } else if (q) {
+      // Current by city name – fallback
+      url =
+        `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(q)}` +
+        `&units=metric&appid=${OPENWEATHER_API_KEY}`;
+    } else {
+      return json({ error: 'Missing query. Provide lat & lon or q (city name).' }, 400);
     }
 
-    const forecastData = await forecastResponse.json();
+    const r = await fetch(url);
+    if (!r.ok) {
+      const t = await r.text();
+      return new Response(JSON.stringify({ error: 'Upstream error', status: r.status, body: t }), {
+        status: 502,
+        headers: { 'content-type': 'application/json; charset=utf-8', ...corsHeaders(ALLOWED_ORIGIN) },
+      });
+    }
 
-    // Transform current weather data
-    const current = {
-      timestamp: new Date().toISOString(),
-      temperature: currentData.main.temp,
-      humidity: currentData.main.humidity,
-      pressure: currentData.main.pressure,
-      visibility: currentData.visibility,
-      windSpeed: (currentData.wind.speed * 3.6), // Convert m/s to km/h
-      windGust: currentData.wind.gust ? (currentData.wind.gust * 3.6) : (currentData.wind.speed * 3.6),
-      windDirection: currentData.wind.deg || 0,
-      description: currentData.weather[0].description,
-      icon: currentData.weather[0].icon,
-    };
+    const data = await r.json();
 
-    // Transform forecast data (next 8 data points = 24 hours)
-    const forecast = forecastData.list.slice(0, 8).map((item: any) => ({
-      time: item.dt_txt,
-      temperature: item.main.temp,
-      windSpeed: (item.wind.speed * 3.6), // Convert m/s to km/h
-      windGust: item.wind.gust ? (item.wind.gust * 3.6) : (item.wind.speed * 3.6),
-      windDirection: item.wind.deg || 0,
-      description: item.weather[0].description,
-      icon: item.weather[0].icon,
-    }));
-
-    const body = JSON.stringify({
-      current,
-      forecast,
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': `public, max-age=${Math.floor(WEATHER_CACHE_TTL_MS / 1000)}, s-maxage=${Math.floor(
+          WEATHER_CACHE_TTL_MS / 1000
+        )}`,
+        ...corsHeaders(ALLOWED_ORIGIN),
+      },
     });
-
-    // Update cache
-    cacheBody = body;
-    cacheTime = now;
-
-    return {
-      statusCode: 200,
-      headers: { ...headers, 'X-Cache': 'MISS' },
-      body,
-    };
-  } catch (error) {
-    console.error('Error fetching weather data:', error);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ 
-        error: 'Failed to fetch weather data',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }),
-    };
+  } catch (err: any) {
+    return new Response(JSON.stringify({ error: err?.message ?? 'Unknown error' }), {
+      status: 500,
+      headers: { 'content-type': 'application/json; charset=utf-8', ...corsHeaders(ALLOWED_ORIGIN) },
+    });
   }
 };
 
-export { handler };
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json; charset=utf-8', ...corsHeaders(ALLOWED_ORIGIN) },
+  });
+}
+
+function corsHeaders(origin: string) {
+  return {
+    'access-control-allow-origin': origin,
+    'access-control-allow-methods': 'GET,OPTIONS',
+    'access-control-allow-headers': 'Content-Type, Authorization',
+  };
+}
