@@ -119,11 +119,14 @@ function createPushTemplate(data: WindAlertData, aiMessage: string) {
     }
   };
 
+  // Creează un titlu personalizat cu AI
+  const personalizedTitle = `${getAlertEmoji(data.alertLevel)} ${data.windSpeed} km/h - Prag ${data.userThreshold} km/h`;
+
   return {
     app_id: APP_ID,
     included_segments: ['Subscribed Users'],
     headings: { 
-      en: `${getAlertEmoji(data.alertLevel)} Alertă Vânt în ${data.location}!` 
+      en: personalizedTitle
     },
     contents: { 
       en: aiMessage 
@@ -135,7 +138,8 @@ function createPushTemplate(data: WindAlertData, aiMessage: string) {
       windDirection: data.windDirection,
       alertLevel: data.alertLevel,
       userThreshold: data.userThreshold,
-      location: data.location
+      location: data.location,
+      aiMessage: aiMessage // Adaugă mesajul AI în data pentru debugging
     },
     // Icon personalizat cu logo-ul aplicației
     chrome_web_icon: 'https://wind.qub3.uk/1000088934-modified.png',
@@ -448,11 +452,18 @@ export const handler: Handler = async (event) => {
 
       // Generează mesajul personalizat cu AI
       const aiMessage = await generateAiMessage(windData);
+      
+      // Log pentru debugging
+      console.log('Generated AI Message:', aiMessage);
+      console.log('Wind Data:', windData);
 
       // Creează template-urile pentru fiecare tip de notificare
       const pushTemplate = createPushTemplate(windData, aiMessage);
       const smsTemplate = createSmsTemplate(windData, aiMessage);
       const emailTemplate = createEmailTemplate(windData, aiMessage);
+      
+      // Log template-urile pentru debugging
+      console.log('Push Template:', pushTemplate);
 
       // Trimite notificarea push prin OneSignal
       const pushResponse = await fetch('https://api.onesignal.com/notifications', {
