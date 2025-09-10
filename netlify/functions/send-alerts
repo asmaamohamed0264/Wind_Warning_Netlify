@@ -427,9 +427,17 @@ export const handler: Handler = async (event) => {
 
   try {
     const body = event.body ? JSON.parse(event.body) : {};
+    console.log('📥 Received request body:', body);
+    console.log('🔍 Checking conditions:', {
+      hasWindSpeed: body.windSpeed !== undefined,
+      hasLocation: !!body.location,
+      hasUserThreshold: !!body.userThreshold
+    });
 
     // Mod 1: Alerte personalizate cu AI pentru date meteo
     if (body.windSpeed !== undefined && body.location && body.userThreshold) {
+      console.log('🎯 AI Mode triggered with data:', body);
+      
       const windData: WindAlertData = {
         windSpeed: Number(body.windSpeed),
         windGust: Number(body.windGust) || Number(body.windSpeed),
@@ -441,8 +449,11 @@ export const handler: Handler = async (event) => {
         forecast: body.forecast
       };
 
+      console.log('📊 Wind Data processed:', windData);
+
       // Validare input
       if (!Number.isFinite(windData.windSpeed) || windData.windSpeed <= 0) {
+        console.log('❌ Validation failed: windSpeed invalid');
         return {
           statusCode: 400,
           headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
