@@ -1,4 +1,4 @@
-// netlify/functions/send-alerts.ts
+// netlify/functions/send-alerts.ts - Updated for AI debugging
 import type { Handler } from '@netlify/functions';
 
 const REST_KEY = process.env.ONESIGNAL_REST_API_KEY!;
