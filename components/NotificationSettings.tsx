@@ -419,13 +419,40 @@ export function NotificationSettings() {
         {pushEnabled && (
           <div className="pt-4 border-t border-gray-700">
             <Button
-              onClick={() => oneSignal.sendTestNotification()}
+              onClick={async () => {
+                setIsLoading(true);
+                try {
+                  const success = await oneSignal.sendTestNotification();
+                  if (success) {
+                    toast.success('Notificare de test personalizată trimisă cu AI!');
+                  } else {
+                    toast.error('Eroare la trimiterea notificării de test');
+                  }
+                } catch (error) {
+                  console.error('Test notification error:', error);
+                  toast.error('Eroare la trimiterea notificării de test');
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
               disabled={isLoading}
               variant="outline"
               className="w-full border-blue-600 text-blue-400 hover:bg-blue-900/20"
             >
-              🧪 Trimite Notificare de Test
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400 mr-2"></div>
+                  Se trimite...
+                </>
+              ) : (
+                <>
+                  🤖 Trimite Notificare de Test cu AI
+                </>
+              )}
             </Button>
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              Testează mesajele personalizate generate de AI bazate pe pragul tău de alertă
+            </p>
           </div>
         )}
       </CardContent>
