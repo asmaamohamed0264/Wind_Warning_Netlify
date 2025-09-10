@@ -3,20 +3,37 @@
 
 import { useEffect } from 'react';
 
+const APP_ID =
+  process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID ||
+  process.env.VITE_ONESIGNAL_APP_ID ||
+  process.env.ONESIGNAL_APP_ID;
+
 export default function OneSignalInit() {
   useEffect(() => {
-    // ne asigurăm că există coada
-    (window as any).OneSignalDeferred = (window as any).OneSignalDeferred || [];
+    if (!APP_ID) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('OneSignal App ID missing');
+      }
+      return;
+    }
 
-    (window as any).OneSignalDeferred.push(async (OneSignal: any) => {
+    // Folosim coada injectată în <head> (v16)
+    // vezi Script-urile deja prezente în app/layout.tsx
+    (window as any).OneSignalDeferred = (window as any).OneSignalDeferred || [];
+    (window as any).OneSignalDeferred.push(async function (OneSignal: any) {
       try {
         await OneSignal.init({
-          appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!, // vezi pasul 4
+          appId: APP_ID,
+          allowLocalhostAsSecureOrigin: true,
+          serviceWorkerPath: '/OneSignalSDKWorker.js',
+          serviceWorkerUpdaterPath: '/OneSignalSDKUpdaterWorker.js',
+          serviceWorkerParam: { scope: '/' },
+          notifyButton: { enable: true },
         });
-        OneSignal.Debug?.setLogLevel?.('info'); // opțional: loguri
-        console.log('[OneSignal] init OK');
-      } catch (err) {
-        console.error('[OneSignal] init error', err);
+        // Prompt manual (opțional):
+        // await OneSignal.registerForPushNotifications();
+      } catch (e) {
+        console.error('OneSignal init error', e);
       }
     });
   }, []);
