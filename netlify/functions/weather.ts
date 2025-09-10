@@ -22,11 +22,10 @@ function simplifyOneCall(data: any) {
     icon: w.icon,
   };
 
-  // Luăm ~8 intrări din hourly, la ~3h (0,3,6,9,12,15,18,21)
+  // Luăm următoarele 8 ore consecutive începând de la ora actuală
   const hourly: any[] = Array.isArray(data.hourly) ? data.hourly : [];
   const forecast = hourly
-    .filter((_, i) => i % 3 === 0) // din oră în oră -> din 3 în 3 ore
-    .slice(0, 8)
+    .slice(0, 8) // Primele 8 ore consecutive (următoarele 8 ore de la NOW)
     .map((h) => {
       const wh = (h.weather && h.weather[0]) || {};
       return {
