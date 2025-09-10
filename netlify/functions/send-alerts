@@ -6,21 +6,55 @@ const APP_ID =
   process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID ||
   process.env.VITE_ONESIGNAL_APP_ID ||
   process.env.ONESIGNAL_APP_ID;
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN ?? '*';
+
+function corsHeaders(origin: string) {
+  return {
+    'access-control-allow-origin': origin,
+    'access-control-allow-methods': 'POST,OPTIONS',
+    'access-control-allow-headers': 'Content-Type, Authorization',
+  };
+}
 
 export const handler: Handler = async (event) => {
+  if (event.httpMethod === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders(ALLOWED_ORIGIN) });
+  }
+
   if (!REST_KEY || !APP_ID) {
-    return new Response(JSON.stringify({ error: 'Missing OneSignal keys' }), { status: 500 });
+    return new Response(JSON.stringify({ error: 'Missing OneSignal keys' }), {
+      status: 500,
+      headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
+    });
   }
 
   try {
     const body = event.body ? JSON.parse(event.body) : {};
-    const { heading = 'Weather alert', content = 'Check the latest forecast', url = 'https://wind.qub3.uk/' } = body;
 
-    const r = await fetch('https://api.onesignal.com/notifications', {
+    // Mod 1 (meteo): dacă vine windSpeed, validăm ca înainte
+    if (body.windSpeed !== undefined) {
+      const ws = Number(body.windSpeed);
+      if (!Number.isFinite(ws) || ws <= 0) {
+        return new Response(JSON.stringify({ ok: false, error: 'windSpeed must be a positive number' }), {
+          status: 400,
+          headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
+        });
+      }
+    }
+
+    const heading = body.heading ?? (body.windSpeed ? 'Weather Alert' : 'Notification');
+    const content =
+      body.content ??
+      (body.windSpeed
+        ? `Wind ${body.windSpeed} m/s${body.windGust ? `, gust ${body.windGust} m/s` : ''}`
+        : 'Check the latest update');
+    const url = body.url ?? 'https://wind.qub3.uk/';
+
+    const resp = await fetch('https://api.onesignal.com/notifications', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
-        Authorization: `Bearer ${REST_KEY}`, // OneSignal v2 REST
+        Authorization: `Bearer ${REST_KEY}`, // OneSignal REST v2
       },
       body: JSON.stringify({
         app_id: APP_ID,
@@ -28,15 +62,31 @@ export const handler: Handler = async (event) => {
         headings: { en: heading },
         contents: { en: content },
         url,
+        // poți include extra data pentru client
+        data: {
+          windSpeed: body.windSpeed,
+          windGust: body.windGust,
+          windDirection: body.windDirection,
+        },
       }),
     });
 
-    const data = await r.json();
-    if (!r.ok) {
-      return new Response(JSON.stringify({ error: 'OneSignal error', data }), { status: 502 });
+    const data = await resp.json();
+    if (!resp.ok) {
+      return new Response(JSON.stringify({ ok: false, error: 'OneSignal error', data }), {
+        status: 502,
+        headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
+      });
     }
-    return new Response(JSON.stringify({ ok: true, data }), { status: 200 });
+
+    return new Response(JSON.stringify({ ok: true, data }), {
+      status: 200,
+      headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
+    });
   } catch (e: any) {
-    return new Response(JSON.stringify({ error: e?.message ?? 'Unknown error' }), { status: 500 });
+    return new Response(JSON.stringify({ ok: false, error: e?.message ?? 'Unknown error' }), {
+      status: 500,
+      headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
+    });
   }
 };
