@@ -1,39 +1,59 @@
 [build]
-  command = "npm run build"
-  publish = "out"
+  command   = "npm run build"
+  publish   = "out"
   functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "18"
 
 [functions]
-  node_bundler = "esbuild"
+  node_bundler   = "esbuild"
+  directory      = "netlify/functions"
+  # ne asigurăm că SW-urile OneSignal sunt incluse în deploy și pot fi servite la root
+  included_files = ["public/OneSignalSDKWorker.js", "public/OneSignalSDKUpdaterWorker.js"]
 
-# Redirect pentru API → Functions
+# --- Redirects ---
+
+# (specific) endpoint-ul nou pentru push manual / meteo
 [[redirects]]
-  from = "/api/*"
-  to   = "/.netlify/functions/:splat"
+  from   = "/api/send-alerts"
+  to     = "/.netlify/functions/send-alerts"
   status = 200
 
-# Redirect pentru noua funcție OneSignal
+# (generic) proxy /api/* spre functions
 [[redirects]]
-  from = "/api/send-alerts"
-  to   = "/.netlify/functions/send-alerts-onesignal"
+  from   = "/api/*"
+  to     = "/.netlify/functions/:splat"
   status = 200
+
+# --- Headers ---
 
 # Headere de securitate (toate paginile)
 [[headers]]
   for = "/*"
   [headers.values]
-    X-Frame-Options = "DENY"
+    X-Frame-Options        = "DENY"
     X-Content-Type-Options = "nosniff"
-    X-XSS-Protection = "1; mode=block"
-    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-XSS-Protection       = "1; mode=block"
+    Referrer-Policy        = "strict-origin-when-cross-origin"
 
-# Headere pentru API (CORS)
+# CORS pentru /api/*
 [[headers]]
   for = "/api/*"
   [headers.values]
-    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Origin  = "*"
     Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"
     Access-Control-Allow-Methods = "GET, POST, DELETE, OPTIONS"
+
+# OneSignal service workers (servite la rădăcina site-ului, cache pe termen lung)
+[[headers]]
+  for = "/OneSignalSDKWorker.js"
+  [headers.values]
+    Content-Type = "application/javascript; charset=utf-8"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/OneSignalSDKUpdaterWorker.js"
+  [headers.values]
+    Content-Type = "application/javascript; charset=utf-8"
+    Cache-Control = "public, max-age=31536000, immutable"
