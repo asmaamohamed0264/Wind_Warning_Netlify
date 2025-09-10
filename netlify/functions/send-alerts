@@ -493,32 +493,38 @@ export const handler: Handler = async (event) => {
       }
 
       // Returnează răspunsul cu template-urile generate
+      const responseData = {
+        ok: true, 
+        data: {
+          push: {
+            sent: pushResponse.ok,
+            data: pushData
+          },
+          templates: {
+            push: pushTemplate,
+            sms: smsTemplate,
+            email: emailTemplate
+          },
+          aiMessage: aiMessage,
+          windData: windData
+        }
+      };
+      
+      console.log('📤 Returning response:', responseData);
+      
       return {
         statusCode: 200,
         headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
-        body: JSON.stringify({ 
-          ok: true, 
-          data: {
-            push: {
-              sent: pushResponse.ok,
-              data: pushData
-            },
-            templates: {
-              push: pushTemplate,
-              sms: smsTemplate,
-              email: emailTemplate
-            },
-            aiMessage: aiMessage,
-            windData: windData
-          }
-        })
+        body: JSON.stringify(responseData)
       };
     }
 
     // Mod 2: Funcționalitatea existentă pentru compatibilitate
     if (body.windSpeed !== undefined) {
+      console.log('🔄 Fallback Mode triggered (old functionality)');
       const ws = Number(body.windSpeed);
       if (!Number.isFinite(ws) || ws <= 0) {
+        console.log('❌ Fallback validation failed');
         return {
           statusCode: 400,
           headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
