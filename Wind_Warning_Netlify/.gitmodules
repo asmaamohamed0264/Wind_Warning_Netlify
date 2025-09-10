@@ -1,2 +1,0 @@
-# Empty .gitmodules file to prevent Netlify submodule checkout errors
-# This file exists to satisfy Git's submodule requirements when none are configured
