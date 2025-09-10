@@ -18,14 +18,18 @@ function corsHeaders(origin: string) {
 
 export const handler: Handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders(ALLOWED_ORIGIN) });
+    return {
+      statusCode: 204,
+      headers: corsHeaders(ALLOWED_ORIGIN)
+    };
   }
 
   if (!REST_KEY || !APP_ID) {
-    return new Response(JSON.stringify({ error: 'Missing OneSignal keys' }), {
-      status: 500,
+    return {
+      statusCode: 500,
       headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
-    });
+      body: JSON.stringify({ error: 'Missing OneSignal keys' })
+    };
   }
 
   try {
@@ -35,10 +39,11 @@ export const handler: Handler = async (event) => {
     if (body.windSpeed !== undefined) {
       const ws = Number(body.windSpeed);
       if (!Number.isFinite(ws) || ws <= 0) {
-        return new Response(JSON.stringify({ ok: false, error: 'windSpeed must be a positive number' }), {
-          status: 400,
+        return {
+          statusCode: 400,
           headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
-        });
+          body: JSON.stringify({ ok: false, error: 'windSpeed must be a positive number' })
+        };
       }
     }
 
@@ -73,20 +78,23 @@ export const handler: Handler = async (event) => {
 
     const data = await resp.json();
     if (!resp.ok) {
-      return new Response(JSON.stringify({ ok: false, error: 'OneSignal error', data }), {
-        status: 502,
+      return {
+        statusCode: 502,
         headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
-      });
+        body: JSON.stringify({ ok: false, error: 'OneSignal error', data })
+      };
     }
 
-    return new Response(JSON.stringify({ ok: true, data }), {
-      status: 200,
+    return {
+      statusCode: 200,
       headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
-    });
+      body: JSON.stringify({ ok: true, data })
+    };
   } catch (e: any) {
-    return new Response(JSON.stringify({ ok: false, error: e?.message ?? 'Unknown error' }), {
-      status: 500,
+    return {
+      statusCode: 500,
       headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
-    });
+      body: JSON.stringify({ ok: false, error: e?.message ?? 'Unknown error' })
+    };
   }
 };

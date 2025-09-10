@@ -1,18 +1,13 @@
 // lib/onesignal.ts
 // Wrapper sigur pentru OneSignal Web SDK v16, compatibil cu Next/Netlify (SSR)
 
-declare global {
-  interface Window {
-    OneSignal?: any;
-    OneSignalDeferred?: any[];
-  }
-}
+// Nu mai declarăm nimic global - folosim tipurile existente din OneSignal SDK
 
 const isClient = () => typeof window !== 'undefined';
 
 function getOS() {
   if (!isClient()) return undefined;
-  return window.OneSignal;
+  return (window as any).OneSignal;
 }
 
 function ensureOS(): any {

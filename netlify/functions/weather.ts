@@ -54,14 +54,18 @@ function corsHeaders(origin: string) {
 export const handler: Handler = async (event) => {
   try {
     if (!OPENWEATHER_API_KEY) {
-      return new Response(JSON.stringify({ error: 'Missing OPENWEATHER_API_KEY' }), {
-        status: 500,
+      return {
+        statusCode: 500,
         headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
-      });
+        body: JSON.stringify({ error: 'Missing OPENWEATHER_API_KEY' })
+      };
     }
 
     if (event.httpMethod === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: corsHeaders(ALLOWED_ORIGIN) });
+      return {
+        statusCode: 204,
+        headers: corsHeaders(ALLOWED_ORIGIN)
+      };
     }
 
     const p = event.queryStringParameters || {};
@@ -79,10 +83,11 @@ export const handler: Handler = async (event) => {
         `&units=metric&appid=${OPENWEATHER_API_KEY}`;
       const r = await fetch(cw);
       if (!r.ok) {
-        return new Response(JSON.stringify({ error: 'Upstream error', status: r.status, body: await r.text() }), {
-          status: 502,
+        return {
+          statusCode: 502,
           headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
-        });
+          body: JSON.stringify({ error: 'Upstream error', status: r.status, body: await r.text() })
+        };
       }
       const d = await r.json();
       const w = (d.weather && d.weather[0]) || {};
@@ -101,8 +106,8 @@ export const handler: Handler = async (event) => {
         },
         forecast: [],
       };
-      return new Response(JSON.stringify(simplified), {
-        status: 200,
+      return {
+        statusCode: 200,
         headers: {
           'content-type': 'application/json; charset=utf-8',
           'cache-control': `public, max-age=${Math.floor(WEATHER_CACHE_TTL_MS / 1000)}, s-maxage=${Math.floor(
@@ -110,27 +115,30 @@ export const handler: Handler = async (event) => {
           )}`,
           ...corsHeaders(ALLOWED_ORIGIN),
         },
-      });
+        body: JSON.stringify(simplified)
+      };
     } else {
-      return new Response(JSON.stringify({ error: 'Missing query. Provide lat & lon or q (city name).' }), {
-        status: 400,
+      return {
+        statusCode: 400,
         headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
-      });
+        body: JSON.stringify({ error: 'Missing query. Provide lat & lon or q (city name).' })
+      };
     }
 
     const r = await fetch(url);
     if (!r.ok) {
-      return new Response(JSON.stringify({ error: 'Upstream error', status: r.status, body: await r.text() }), {
-        status: 502,
+      return {
+        statusCode: 502,
         headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
-      });
+        body: JSON.stringify({ error: 'Upstream error', status: r.status, body: await r.text() })
+      };
     }
 
     const data = await r.json();
     const simplified = simplifyOneCall(data);
 
-    return new Response(JSON.stringify(simplified), {
-      status: 200,
+    return {
+      statusCode: 200,
       headers: {
         'content-type': 'application/json; charset=utf-8',
         'cache-control': `public, max-age=${Math.floor(WEATHER_CACHE_TTL_MS / 1000)}, s-maxage=${Math.floor(
@@ -138,11 +146,13 @@ export const handler: Handler = async (event) => {
         )}`,
         ...corsHeaders(ALLOWED_ORIGIN),
       },
-    });
+      body: JSON.stringify(simplified)
+    };
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err?.message ?? 'Unknown error' }), {
-      status: 500,
+    return {
+      statusCode: 500,
       headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
-    });
+      body: JSON.stringify({ error: err?.message ?? 'Unknown error' })
+    };
   }
 };
