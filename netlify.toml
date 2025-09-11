@@ -26,6 +26,12 @@
   to     = "/.netlify/functions/:splat"
   status = 200
 
+# (specific) endpoint pentru date meteo compilate
+[[redirects]]
+  from   = "/api/weather-compiled"
+  to     = "/.netlify/functions/weather-compiled"
+  status = 200
+
 # --- Headers ---
 
 # Headere de securitate (toate paginile)

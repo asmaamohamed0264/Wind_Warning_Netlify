@@ -90,15 +90,38 @@ export default function Home() {
 
     try {
       setError(null);
-      const response = await fetch('/api/weather?q=Bucharest');
+      // Folosim endpoint-ul nou cu date compilate din 3 surse
+      const response = await fetch('/api/weather-compiled?q=Bucharest');
       
       if (!response.ok) {
         throw new Error(`Weather service error: ${response.status}`);
       }
       
       const data = await response.json();
-      setWeatherData(data.current);
-      setForecastData(data.forecast || []);
+      
+      // Procesăm datele compilate din 3 surse
+      const compiledWeatherData = {
+        windSpeed: data.windSpeed,
+        windGust: data.windGust,
+        windDirection: data.windDirection,
+        temperature: data.temperature,
+        humidity: data.humidity,
+        pressure: data.pressure,
+        visibility: data.visibility,
+        location: data.location,
+        timestamp: data.timestamp,
+        sources: data.sources,
+        compilationMethod: data.compilationMethod
+      };
+      
+      setWeatherData(compiledWeatherData);
+      
+      // Păstrăm prognoza existentă pentru a nu pierde graficul
+      // TODO: Implementa prognoză compilată din 3 surse
+      if (data.forecast) {
+        setForecastData(data.forecast);
+      }
+      
       setLastUpdate(new Date());
       setLoading(false);
       
@@ -335,8 +358,13 @@ export default function Home() {
         {/* Footer */}
         <footer className="text-center text-gray-500 text-sm border-t border-gray-800 pt-6">
           <p className="mb-2">
-            🌍 Date furnizate de OpenWeatherMap • Actualizări la fiecare 5 minute
+            🌍 Date compilate din 3 surse: OpenWeatherMap, Weatherbit, Open-Meteo • Actualizări la fiecare 5 minute
           </p>
+          {weatherData?.compilationMethod && (
+            <p className="mb-2 text-xs text-gray-600">
+              📊 {weatherData.compilationMethod}
+            </p>
+          )}
           <p className="mb-2">
             🏛️ Construit pentru siguranța și liniștea sufletească în zona Grand Arena, București
           </p>
