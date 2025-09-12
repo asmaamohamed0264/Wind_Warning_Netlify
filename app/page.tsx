@@ -91,7 +91,8 @@ export default function Home() {
     try {
       setError(null);
       // Folosim endpoint-ul nou cu date compilate din 3 surse
-      const response = await fetch('/api/weather-compiled?q=Bucharest');
+      const ts = Date.now();
+      const response = await fetch(`/api/weather-compiled?q=Bucharest&ts=${ts}`, { cache: 'no-store' } as RequestInit);
       
       if (!response.ok) {
         throw new Error(`Weather service error: ${response.status}`);

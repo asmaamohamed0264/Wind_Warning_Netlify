@@ -36,7 +36,8 @@ interface CompiledWeatherData {
 // Funcție pentru a obține datele din OpenWeatherMap (existent)
 async function getOpenWeatherMapData(location: string): Promise<WeatherData | null> {
   try {
-    const apiKey = process.env.OPENWEATHERMAP_API_KEY;
+    // Acceptă ambele nume de variabile de mediu pentru compatibilitate
+    const apiKey = process.env.OPENWEATHERMAP_API_KEY || process.env.OPENWEATHER_API_KEY;
     if (!apiKey) return null;
 
     const response = await fetch(
@@ -136,6 +137,48 @@ async function getOpenMeteoData(location: string): Promise<WeatherData | null> {
   }
 }
 
+// Prognoză fallback: Open‑Meteo (gratuit)
+async function getOpenMeteoForecast(): Promise<any[]> {
+  try {
+    const lat = 44.4268;
+    const lon = 26.1025;
+    const url =
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+      `&hourly=temperature_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m&timezone=Europe%2FBucharest`;
+    const r = await fetch(url);
+    if (!r.ok) return [];
+    const j = await r.json();
+    const times: string[] = j.hourly?.time || [];
+    const temp: number[] = j.hourly?.temperature_2m || [];
+    const ws: number[] = j.hourly?.wind_speed_10m || [];
+    const wg: number[] = j.hourly?.wind_gusts_10m || [];
+    const wd: number[] = j.hourly?.wind_direction_10m || [];
+
+    // Găsim indexul orei curente (sau cea mai apropiată viitoare)
+    const nowIso = new Date().toISOString().slice(0, 13); // YYYY-MM-DDTHH
+    let startIdx = times.findIndex((t: string) => t.startsWith(nowIso));
+    if (startIdx < 0) startIdx = 0;
+
+    const result = [] as any[];
+    for (let i = startIdx; i < Math.min(startIdx + 8, times.length); i++) {
+      result.push({
+        time: times[i].replace('T', ' ') + ':00',
+        temperature: temp[i],
+        windSpeed: ws[i], // deja km/h
+        windGust: (typeof wg[i] === 'number' ? wg[i] : ws[i]),
+        windDirection: wd[i],
+        description: '',
+        icon: '',
+      });
+    }
+
+    return result;
+  } catch (e) {
+    console.error('Open‑Meteo forecast error:', e);
+    return [];
+  }
+}
+
 // Funcție pentru a compila datele din toate sursele
 function compileWeatherData(sources: {
   openweathermap: WeatherData | null;
@@ -221,26 +264,38 @@ export const handler: Handler = async (event) => {
       sources: compiledData.compilationMethod
     });
     
-    // Pentru moment, să obținem și prognoza din OpenWeatherMap pentru a păstra graficul
-    let forecastData = [];
+    // Prognoză: încercăm OWM, apoi cădem pe Open‑Meteo
+    let forecastData: any[] = [];
     try {
-      const forecastResponse = await fetch(
-        `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(location)}&appid=${process.env.OPENWEATHERMAP_API_KEY}&units=metric`
-      );
-      if (forecastResponse.ok) {
-        const forecastJson = await forecastResponse.json();
-        forecastData = forecastJson.list?.slice(0, 8).map((item: any) => ({
-          time: new Date(item.dt * 1000).toISOString().replace('T', ' ').slice(0, 19),
-          temperature: item.main.temp,
-          windSpeed: item.wind.speed * 3.6,
-          windGust: item.wind.gust ? item.wind.gust * 3.6 : item.wind.speed * 3.6,
-          windDirection: item.wind.deg,
-          description: item.weather[0].description,
-          icon: item.weather[0].icon,
-        })) || [];
+      const owmKey = process.env.OPENWEATHERMAP_API_KEY || process.env.OPENWEATHER_API_KEY;
+      if (owmKey) {
+        const forecastResponse = await fetch(
+          `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(location)}&appid=${owmKey}&units=metric`
+        );
+        if (forecastResponse.ok) {
+          const forecastJson = await forecastResponse.json();
+          forecastData = forecastJson.list?.slice(0, 8).map((item: any) => ({
+            time: new Date(item.dt * 1000).toISOString().replace('T', ' ').slice(0, 19),
+            temperature: item.main.temp,
+            windSpeed: item.wind.speed * 3.6,
+            windGust: item.wind.gust ? item.wind.gust * 3.6 : item.wind.speed * 3.6,
+            windDirection: item.wind.deg,
+            description: item.weather[0].description,
+            icon: item.weather[0].icon,
+          })) || [];
+        } else {
+          console.warn('OWM forecast response not ok:', forecastResponse.status);
+        }
+      }
+      if (!forecastData || forecastData.length === 0) {
+        console.log('Using Open‑Meteo forecast fallback');
+        forecastData = await getOpenMeteoForecast();
       }
     } catch (error) {
       console.error('Forecast fetch error:', error);
+      if (!forecastData || forecastData.length === 0) {
+        forecastData = await getOpenMeteoForecast();
+      }
     }
     
     return {
