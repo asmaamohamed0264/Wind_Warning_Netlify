@@ -112,7 +112,10 @@ export default function Home() {
         location: data.location,
         timestamp: data.timestamp,
         sources: data.sources,
-        compilationMethod: data.compilationMethod
+        compilationMethod: data.compilationMethod,
+        // WeatherDashboard așteaptă câmpuri text – folosim fallback neutru
+        description: '',
+        icon: ''
       };
       
       setWeatherData(compiledWeatherData);
