@@ -14,10 +14,10 @@
 
 # --- Redirects ---
 
-# (specific) endpoint-ul nou pentru push manual / meteo
+# (specific) endpoint-ul nou pentru push manual / meteo - UPDATED pentru AI complet
 [[redirects]]
   from   = "/api/send-alerts"
-  to     = "/.netlify/functions/send-alerts"
+  to     = "/.netlify/functions/send-alerts-v2"
   status = 200
 
 # (generic) proxy /api/* spre functions
