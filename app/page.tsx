@@ -228,7 +228,7 @@ export default function Home() {
       
       if (result.ok) {
         console.log('AI personalized alerts sent:', result.data);
-        toast.success('Alerte personalizate trimise cu AI!');
+        // Toast notification removed per user request
       } else {
         console.error('Failed to send AI alerts:', result.error);
         toast.error('Eroare la trimiterea alertelor personalizate');
