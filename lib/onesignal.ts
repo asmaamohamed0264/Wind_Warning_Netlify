@@ -40,25 +40,139 @@ export const oneSignal = {
   // Push subscribe/unsubscribe
   async isSubscribed(): Promise<boolean> {
     try {
+      console.log('🔍 OneSignal isSubscribed: Starting check...');
       await waitForSDKReady();
       const os = ensureOS();
-      return os.Notifications?.isSubscribed() ?? false;
-    } catch {
+      
+      console.log('🔍 OneSignal object:', os);
+      console.log('🔍 OneSignal.Notifications:', os.Notifications);
+      
+      // Încarcă mai multe metode pentru a detecta subscribe state
+      let isSubscribed = false;
+      
+      if (os.Notifications && typeof os.Notifications.isSubscribed === 'function') {
+        isSubscribed = await os.Notifications.isSubscribed();
+        console.log('🔍 Method 1 (isSubscribed()):', isSubscribed);
+      } else if (os.User && os.User.PushSubscription) {
+        // Fallback pentru v16
+        isSubscribed = os.User.PushSubscription.J || false;
+        console.log('🔍 Method 2 (User.PushSubscription.J):', isSubscribed);
+      }
+      
+      // De asemenea verifică și browser permission
+      if ('Notification' in window) {
+        const permission = Notification.permission;
+        console.log('🔍 Browser notification permission:', permission);
+        if (permission === 'denied') {
+          isSubscribed = false;
+        }
+      }
+      
+      console.log('🔍 Final isSubscribed result:', isSubscribed);
+      return isSubscribed;
+    } catch (error) {
+      console.error('🔍 OneSignal isSubscribed error:', error);
       return false;
     }
   },
 
   async subscribe(): Promise<boolean> {
     try {
+      console.log('🔧 OneSignal subscribe: Starting process...');
       await waitForSDKReady();
       const os = ensureOS();
-      // Cere permisiunea și se abonează
-      const perm = await os.Notifications.requestPermission(); // 'granted' | 'denied' | 'default'
-      if (perm !== 'granted') return false;
-      await os.Notifications.subscribe();
-      return await os.Notifications.isSubscribed();
+      
+      console.log('🔧 OneSignal subscribe: SDK ready, checking current permission...');
+      
+      // Debug: Inspect the actual OneSignal object structure
+      console.log('🔧 OneSignal object keys:', Object.keys(os));
+      console.log('🔧 OneSignal.Notifications:', os.Notifications);
+      if (os.Notifications) {
+        console.log('🔧 OneSignal.Notifications keys:', Object.keys(os.Notifications));
+      }
+      console.log('🔧 OneSignal.User:', os.User);
+      if (os.User) {
+        console.log('🔧 OneSignal.User keys:', Object.keys(os.User));
+        if (os.User.PushSubscription) {
+          console.log('🔧 OneSignal.User.PushSubscription:', os.User.PushSubscription);
+          console.log('🔧 OneSignal.User.PushSubscription keys:', Object.keys(os.User.PushSubscription));
+        }
+      }
+      
+      // Check for common OneSignal methods
+      const commonMethods = ['requestPermission', 'registerForPushNotifications', 'showSlidedownPrompt', 'showCategorySlidedown', 'init', 'on', 'off', 'once', 'push'];
+      commonMethods.forEach(method => {
+        console.log(`🔧 OneSignal.${method}:`, typeof os[method]);
+      });
+      
+      // Check PushSubscription methods
+      if (os.User.PushSubscription) {
+        const pushSubProps = Object.getOwnPropertyNames(os.User.PushSubscription);
+        const pushSubProto = Object.getOwnPropertyNames(Object.getPrototypeOf(os.User.PushSubscription));
+        console.log('🔧 OneSignal.User.PushSubscription own properties:', pushSubProps);
+        console.log('🔧 OneSignal.User.PushSubscription prototype methods:', pushSubProto);
+      }
+      
+      // Check current permission status first
+      const currentPermission = 'Notification' in window ? Notification.permission : 'unsupported';
+      console.log('🔧 OneSignal subscribe: Current browser permission:', currentPermission);
+      
+      if (currentPermission === 'denied') {
+        console.log('🔧 OneSignal subscribe: Permission is denied by user');
+        return false;
+      }
+      
+      // Check if already subscribed (J property indicates subscription status)
+      const alreadySubscribed = os.User.PushSubscription.J;
+      console.log('🔧 OneSignal subscribe: Already subscribed?', alreadySubscribed);
+      
+      if (alreadySubscribed) {
+        console.log('🔧 OneSignal subscribe: User is already subscribed');
+        return true;
+      }
+      
+      // Try different OneSignal subscription approaches
+      console.log('🔧 OneSignal subscribe: Trying multiple subscription approaches...');
+      
+      try {
+        // Approach 1: Try to find OptIn method on PushSubscription
+        if (typeof os.User.PushSubscription.optIn === 'function') {
+          console.log('🔧 OneSignal subscribe: Trying PushSubscription.optIn()');
+          await os.User.PushSubscription.optIn();
+        }
+        // Approach 2: Try to find subscribe method on PushSubscription  
+        else if (typeof os.User.PushSubscription.subscribe === 'function') {
+          console.log('🔧 OneSignal subscribe: Trying PushSubscription.subscribe()');
+          await os.User.PushSubscription.subscribe();
+        }
+        // Approach 3: Try setting J property directly
+        else {
+          console.log('🔧 OneSignal subscribe: Setting J property directly');
+          os.User.PushSubscription.J = true;
+        }
+        
+        // Approach 4: If all else fails, use browser native permission and hope OneSignal picks it up
+        if (!os.User.PushSubscription.J && 'Notification' in window && Notification.permission === 'default') {
+          console.log('🔧 OneSignal subscribe: Fallback to browser native permission');
+          const permission = await Notification.requestPermission();
+          console.log('🔧 OneSignal subscribe: Browser permission result:', permission);
+        }
+        
+        // Check final subscription status
+        const nowSubscribed = os.User.PushSubscription.J;
+        console.log('🔧 OneSignal subscribe: Final subscription status:', nowSubscribed);
+        
+        return nowSubscribed ?? false;
+      } catch (permError) {
+        console.error('🔧 OneSignal subscribe: Permission/subscription error:', permError);
+        return false;
+      }
     } catch (e) {
-      console.error('OneSignal subscribe error:', e);
+      console.error('🔧 OneSignal subscribe error (detailed):', {
+        error: e,
+        message: e instanceof Error ? e.message : 'Unknown error',
+        stack: e instanceof Error ? e.stack : 'No stack trace'
+      });
       return false;
     }
   },

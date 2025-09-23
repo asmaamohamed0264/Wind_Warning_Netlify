@@ -163,10 +163,10 @@ async function getOpenMeteoForecast(): Promise<any[]> {
     for (let i = startIdx; i < Math.min(startIdx + 8, times.length); i++) {
       result.push({
         time: times[i].replace('T', ' ') + ':00',
-        temperature: temp[i],
-        windSpeed: ws[i], // deja km/h
-        windGust: (typeof wg[i] === 'number' ? wg[i] : ws[i]),
-        windDirection: wd[i],
+        temperature: Math.round(temp[i] * 10) / 10,
+        windSpeed: Math.round(ws[i] * 10) / 10, // deja km/h, rotunjit
+        windGust: Math.round((typeof wg[i] === 'number' ? wg[i] : ws[i]) * 10) / 10,
+        windDirection: Math.round(wd[i]),
         description: '',
         icon: '',
       });
@@ -191,15 +191,15 @@ function compileWeatherData(sources: {
     throw new Error('No valid weather data sources available');
   }
   
-  // Calculăm media pentru fiecare parametru din sursele valide
+  // Calculăm media pentru fiecare parametru din sursele valide și rotunjim pentru a elimina zecimalele
   const compiled = {
-    windSpeed: validSources.reduce((sum, source) => sum + source.windSpeed, 0) / validSources.length,
-    windGust: validSources.reduce((sum, source) => sum + source.windGust, 0) / validSources.length,
-    windDirection: validSources.reduce((sum, source) => sum + source.windDirection, 0) / validSources.length,
-    temperature: validSources.reduce((sum, source) => sum + source.temperature, 0) / validSources.length,
-    humidity: validSources.reduce((sum, source) => sum + source.humidity, 0) / validSources.length,
-    pressure: validSources.reduce((sum, source) => sum + source.pressure, 0) / validSources.length,
-    visibility: validSources.reduce((sum, source) => sum + source.visibility, 0) / validSources.length,
+    windSpeed: Math.round((validSources.reduce((sum, source) => sum + source.windSpeed, 0) / validSources.length) * 10) / 10,
+    windGust: Math.round((validSources.reduce((sum, source) => sum + source.windGust, 0) / validSources.length) * 10) / 10,
+    windDirection: Math.round(validSources.reduce((sum, source) => sum + source.windDirection, 0) / validSources.length),
+    temperature: Math.round((validSources.reduce((sum, source) => sum + source.temperature, 0) / validSources.length) * 10) / 10,
+    humidity: Math.round(validSources.reduce((sum, source) => sum + source.humidity, 0) / validSources.length),
+    pressure: Math.round(validSources.reduce((sum, source) => sum + source.pressure, 0) / validSources.length),
+    visibility: Math.round((validSources.reduce((sum, source) => sum + source.visibility, 0) / validSources.length) * 10) / 10,
     sources,
     compilationMethod: `Compiled from ${validSources.length} sources: ${validSources.map(s => s.source).join(', ')}`,
     timestamp: new Date().toISOString(),
@@ -276,10 +276,10 @@ export const handler: Handler = async (event) => {
           const forecastJson = await forecastResponse.json();
           forecastData = forecastJson.list?.slice(0, 8).map((item: any) => ({
             time: new Date(item.dt * 1000).toISOString().replace('T', ' ').slice(0, 19),
-            temperature: item.main.temp,
-            windSpeed: item.wind.speed * 3.6,
-            windGust: item.wind.gust ? item.wind.gust * 3.6 : item.wind.speed * 3.6,
-            windDirection: item.wind.deg,
+            temperature: Math.round(item.main.temp * 10) / 10,
+            windSpeed: Math.round(item.wind.speed * 3.6 * 10) / 10,
+            windGust: item.wind.gust ? Math.round(item.wind.gust * 3.6 * 10) / 10 : Math.round(item.wind.speed * 3.6 * 10) / 10,
+            windDirection: Math.round(item.wind.deg),
             description: item.weather[0].description,
             icon: item.weather[0].icon,
           })) || [];
