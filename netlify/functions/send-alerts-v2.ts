@@ -689,13 +689,15 @@ export const handler: Handler = async (event) => {
         },
         body: JSON.stringify({
           app_id: APP_ID,
-          include_player_ids: ['5959e86c-ce41-42f7-9cd0-2e747d0f4238'], // Email subscriber specific
-          name: `Wind Email Alert ${Date.now()}`,
-          // Pentru email, folosim contents în loc de email_body și subject separat
-          contents: { en: 'Alertă vânt personalizată din Wind Warning' },
-          subject: { en: `🚨 Alertă Vânt: ${windData.windSpeed} km/h - ${windData.location}` },
-          email_subject: `🚨 Alertă Vânt: ${windData.windSpeed} km/h - ${windData.location}`,
-          email_body: emailTemplate
+          // Revert la modul simplu - folosește ALL users ca înainte
+          included_segments: ['All'],
+          headings: { en: 'Alertă Vânt Personalizată' },
+          contents: { en: aiMessage },
+          // Email specific fields ca înainte
+          email_subject: `Alertă Vânt: ${windData.windSpeed} km/h - ${windData.location}`,
+          email_body: emailTemplate,
+          // Specific email targeting
+          send_after: new Date().toISOString()
         }),
       });
       
