@@ -216,11 +216,9 @@ function createPushTemplate(data: WindAlertData, aiMessage: string) {
 
   return {
     app_id: APP_ID,
-    // Folosește Player IDs specific pentru utilizatori activi
+    // Trimăte doar către push subscribers pentru a evita conflictele multi-channel 
     include_player_ids: [
-      '65b462dc-9e2f-44c3-9ba5-de092093f4e2', // SMS subscriber
-      '5959e86c-ce41-42f7-9cd0-2e747d0f4238', // Email subscriber  
-      'b0c31784-f232-4333-abcf-3525c2d9ebdc'  // Push subscriber (even if unsubscribed, will try)
+      'b0c31784-f232-4333-abcf-3525c2d9ebdc'  // Push subscriber doar
     ],
     name: `Wind Alert ${Date.now()}`,
     headings: { 
