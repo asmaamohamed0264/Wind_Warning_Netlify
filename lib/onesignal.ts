@@ -389,48 +389,7 @@ export const oneSignal = {
     }
   },
 
-  // Util – buton de test cu AI personalizat
-  async sendTestNotification() {
-    try {
-      // Obține pragul personalizat al utilizatorului
-      const userThreshold = parseInt(localStorage.getItem('wind_alert_threshold') || '20', 10);
-      
-      // Trimite notificare de test prin API-ul nostru cu AI
-      const response = await fetch('/api/send-alerts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          windSpeed: 32, // Viteza de test
-          windGust: 38, // Rafale de test
-          windDirection: 180, // Sud
-          location: 'Aleea Someșul Cald, București',
-          alertLevel: 'danger', // Nivel de test
-          userThreshold: userThreshold,
-          userId: 'test_user_' + Date.now(),
-          forecast: [
-            { time: new Date().toISOString(), windSpeed: 32, windGust: 38 },
-            { time: new Date(Date.now() + 3600000).toISOString(), windSpeed: 28, windGust: 35 },
-            { time: new Date(Date.now() + 7200000).toISOString(), windSpeed: 25, windGust: 30 }
-          ]
-        }),
-      });
-
-      const result = await response.json();
-      
-      if (result.ok) {
-        console.log('Test notification sent with AI:', result.data);
-        return true;
-      } else {
-        console.error('Failed to send test notification:', result.error);
-        return false;
-      }
-    } catch (error) {
-      console.error('Error sending test notification:', error);
-      return false;
-    }
-  },
+  // Test notifications are now handled via development tools for better debugging
 };
 
 export default oneSignal;
