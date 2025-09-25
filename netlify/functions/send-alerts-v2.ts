@@ -222,11 +222,12 @@ function createPushTemplate(data: WindAlertData, aiMessage: string) {
       '5959e86c-ce41-42f7-9cd0-2e747d0f4238', // Email subscriber  
       'b0c31784-f232-4333-abcf-3525c2d9ebdc'  // Push subscriber (even if unsubscribed, will try)
     ],
+    name: `Wind Alert ${Date.now()}`,
     headings: { 
-      ro: personalizedTitle
+      en: personalizedTitle // OneSignal requirește 'en' pentru push
     },
     contents: { 
-      ro: aiMessage 
+      en: aiMessage 
     },
     url: 'https://wind.qub3.uk/',
     data: {
@@ -672,9 +673,9 @@ export const handler: Handler = async (event) => {
         body: JSON.stringify({
           app_id: APP_ID,
           include_player_ids: ['65b462dc-9e2f-44c3-9ba5-de092093f4e2'], // SMS subscriber
+          name: `Wind SMS Alert ${Date.now()}`,
           contents: { en: smsTemplate },
-          sms_from: 'WindAlert',
-          channel_for_external_user_ids: 'sms'
+          sms_from: 'WindAlert'
         }),
       });
       
@@ -691,9 +692,9 @@ export const handler: Handler = async (event) => {
         body: JSON.stringify({
           app_id: APP_ID,
           include_player_ids: ['5959e86c-ce41-42f7-9cd0-2e747d0f4238'], // Email subscriber
+          name: `Wind Email Alert ${Date.now()}`,
           subject: { en: `🚨 Alertă Vânt: ${windData.windSpeed} km/h` },
-          email_body: emailTemplate,
-          channel_for_external_user_ids: 'email'
+          email_body: emailTemplate
         }),
       });
       
