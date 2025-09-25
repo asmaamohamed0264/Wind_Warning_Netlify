@@ -147,29 +147,36 @@ async function generateAiMessage(data: WindAlertData): Promise<string> {
     return directions[index];
   };
 
-  const prompt = `Ești un asistent meteo specializat în avertizări de vânt pentru România. Generează un mesaj scurt, clar și util pentru un utilizator din ${data.location}.
+  // Seed pentru varietatea umorului bazat pe oră (schimbă la fiecare oră)
+  const humorSeed = Math.floor(Date.now() / (1000 * 60 * 60)); // Schimbă la fiecare oră
+  
+  const prompt = `Ești un asistent meteo amuzant și personalizat pentru LOREDANA din ${data.location}. Generează un mesaj scurt, amuzant dar util.
 
 CONTEXT:
+- Utilizatoarea: LOREDANA (dragă, Lori)
 - Viteza vântului: ${data.windSpeed} km/h
 - Rafale: ${data.windGust} km/h  
 - Direcția vântului: ${getWindDirection(data.windDirection)}
-- Pragul personal de alertă al utilizatorului: ${data.userThreshold} km/h
+- Pragul personal Loredanei: ${data.userThreshold} km/h
 - Nivelul de alertă: ${getAlertLevelText(data.alertLevel)}
-- Locația: ${data.location}
+- Locația specifică: ${data.location}
+- Humor seed: ${humorSeed} (pentru varietate)
 
-CERINȚE:
-1. Mesajul să fie în română, scurt și direct (max 120 caractere)
-2. Să menționeze viteza vântului și că depășește pragul personal
-3. Să includă un sfat de siguranță relevant pentru nivelul de alertă
-4. Să fie adaptat pentru ${data.location}
-5. Să fie util și practic, nu doar informativ
+STIL CERUT:
+1. Adresează-te personal la "Lori" sau "dragă"
+2. Folosește argou românesc și expresii amuzante
+3. Fă referințe haioase la vânt/vremea din ${data.location}
+4. Include viteza exactă (${data.windSpeed} km/h) și că depășește pragul (${data.userThreshold} km/h)
+5. Adaugă un sfat de siguranță dar într-un mod amuzant
+6. Max 120 caractere, emoji-uri permise
+7. Să fie personalizat pentru femei (nu folosi "boss")
 
-EXEMPLE DE SFATURI PE NIVEL:
-- CAUTION: "Fixează obiectele ușoare din exterior"
-- WARNING: "Evită zonele deschise și fixează obiectele mobile"  
-- DANGER: "Rămâi în interior și evită toate activitățile în aer liber"
+EXEMPLE STIL AMUZANT:
+- "Lori dragă, vântul face spectacol..."
+- "Dragă, în ${data.location} bate vântul ca..."
+- "Atenție Lori, vântul de ${data.windSpeed} km/h..."
 
-Generează un mesaj de maximum 120 caractere pentru notificări push/SMS.`;
+Generează un mesaj amuzant, personalizat pentru Loredana, max 120 caractere.`;
 
   try {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -181,8 +188,8 @@ Generează un mesaj de maximum 120 caractere pentru notificări push/SMS.`;
       body: JSON.stringify({
         model: OPENROUTER_MODEL,
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 150,
-        temperature: 0.7,
+        max_tokens: 120,
+        temperature: 0.9, // Temperatura mai mare pentru creativitate și umor
       }),
     });
 
