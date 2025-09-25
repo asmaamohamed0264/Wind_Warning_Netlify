@@ -7,7 +7,7 @@ const APP_ID =
   process.env.VITE_ONESIGNAL_APP_ID ||
   process.env.ONESIGNAL_APP_ID;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const OPENROUTER_MODEL = 'mistralai/mistral-small-3.2-24b-instruct:free';
+const OPENROUTER_MODEL = 'anthropic/claude-3-haiku:beta'; // Claude Haiku free, mai bun pentru română
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN ?? '*';
 
 function corsHeaders(origin: string) {
@@ -150,34 +150,26 @@ async function generateAiMessage(data: WindAlertData): Promise<string> {
   // Seed pentru varietatea umorului bazat pe oră (schimbă la fiecare oră)
   const humorSeed = Math.floor(Date.now() / (1000 * 60 * 60)); // Schimbă la fiecare oră
   
-  const prompt = `Ești un asistent meteo amuzant și personalizat pentru LOREDANA din ${data.location}. Generează un mesaj scurt, amuzant dar util.
+  const prompt = `Scrie un mesaj amuzant de alertă vreme pentru LOREDANA (pe care o poți chema "Lori dragă"). Trebuie să fie în română perfectă, amuzant și prietenos.
 
-CONTEXT:
-- Utilizatoarea: LOREDANA (dragă, Lori)
-- Viteza vântului: ${data.windSpeed} km/h
-- Rafale: ${data.windGust} km/h  
-- Direcția vântului: ${getWindDirection(data.windDirection)}
-- Pragul personal Loredanei: ${data.userThreshold} km/h
-- Nivelul de alertă: ${getAlertLevelText(data.alertLevel)}
-- Locația specifică: ${data.location}
-- Humor seed: ${humorSeed} (pentru varietate)
+INFO METEO:
+• Vânt: ${data.windSpeed} km/h (pragul ei: ${data.userThreshold} km/h)
+• Rafale: ${data.windGust} km/h
+• Locația: ${data.location}
+• Nivel: ${getAlertLevelText(data.alertLevel)}
 
-STIL CERUT:
-1. Adresează-te personal la "Lori" sau "dragă"
-2. Folosește argou românesc și expresii amuzante
-3. Fă referințe haioase la vânt/vremea din ${data.location}
-4. Include viteza exactă (${data.windSpeed} km/h) și că depășește pragul (${data.userThreshold} km/h)
-5. Adaugă un sfat de siguranță dar într-un mod amuzant
-6. Ține mesajul sub 120 caractere, emoji-uri permise
-7. Să fie personalizat pentru femei (nu folosi "boss")
-8. NU include în mesaj numărul de caractere sau lungimea textului
+CUM SĂ SCRII:
+• Începe cu "Lori dragă" sau "Dragă Lori"
+• Folosește română naturală, nu traduceri ciudate
+• Fă-o să râdă, dar să înțeleagă că e periculos
+• Menționează ${data.windSpeed} km/h și că a depășit ${data.userThreshold} km/h
+• Dă-i un sfat de siguranță amuzant
+• Maxim 100 caractere!
 
-EXEMPLE STIL AMUZANT:
-- "Lori dragă, vântul face spectacol..."
-- "Dragă, în ${data.location} bate vântul ca..."
-- "Atenție Lori, vântul de ${data.windSpeed} km/h..."
+EXEMPLE BUNE:
+"Lori dragă, vântul de ${data.windSpeed} km/h ți-a rupt pragul de ${data.userThreshold}! Ține-te de pălărie 😉🌬️"
 
-Generează doar mesajul amuzant pentru Loredana, fără să menționezi lungimea.`
+Scrie DOAR mesajul, nimic altceva:`
 
   try {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -479,7 +471,6 @@ function createEmailTemplate(data: WindAlertData, aiMessage: string): string {
         </div>
         
         <div class="message">
-            <p><strong>Salut!</strong></p>
             <p>${aiMessage}</p>
         </div>
 

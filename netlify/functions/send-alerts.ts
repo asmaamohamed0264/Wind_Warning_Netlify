@@ -7,7 +7,7 @@ const APP_ID =
   process.env.VITE_ONESIGNAL_APP_ID ||
   process.env.ONESIGNAL_APP_ID;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const OPENROUTER_MODEL = 'mistralai/mistral-small-3.2-24b-instruct:free';
+const OPENROUTER_MODEL = 'anthropic/claude-3-haiku:beta'; // Claude Haiku free, mai bun pentru română
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN ?? '*';
 
 function corsHeaders(origin: string) {
@@ -363,7 +363,6 @@ function createEmailTemplate(data: WindAlertData, aiMessage: string): string {
         </div>
         
         <div class="message">
-            <p><strong>Salut!</strong></p>
             <p>${aiMessage}</p>
         </div>
 
