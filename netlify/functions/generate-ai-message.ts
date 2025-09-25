@@ -133,10 +133,14 @@ export const handler: Handler = async (event) => {
 
     return {
       statusCode: 200,
-      headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
+      headers: { 
+        'content-type': 'application/json; charset=utf-8', 
+        ...corsHeaders(ALLOWED_ORIGIN) 
+      },
       body: JSON.stringify({ 
         success: true, 
         message: aiMessage,
+        messageLength: aiMessage.length,
         data: {
           windSpeed: windData.windSpeed,
           windGust: windData.windGust,

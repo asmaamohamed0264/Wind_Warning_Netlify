@@ -33,6 +33,98 @@ interface WindAlertData {
   }>;
 }
 
+// Analytics & Tracking System
+interface NotificationAnalytics {
+  id: string;
+  timestamp: string;
+  type: 'push' | 'sms' | 'email';
+  alertLevel: string;
+  windSpeed: number;
+  userThreshold: number;
+  location: string;
+  aiMessageLength: number;
+  deliveryStatus: 'sent' | 'failed' | 'delayed';
+  oneSignalResponse?: any;
+  errors?: string[];
+  processingTime: number;
+  smartTimingApplied: boolean;
+}
+
+// Generate unique tracking ID
+function generateTrackingId(): string {
+  return `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// Track notification attempt
+function trackNotificationAttempt(analytics: NotificationAnalytics): void {
+  console.log('📊 ANALYTICS:', JSON.stringify({
+    trackingId: analytics.id,
+    timestamp: analytics.timestamp,
+    alertLevel: analytics.alertLevel,
+    windSpeed: analytics.windSpeed,
+    location: analytics.location,
+    deliveryStatus: analytics.deliveryStatus,
+    processingTime: `${analytics.processingTime}ms`,
+    smartTimingApplied: analytics.smartTimingApplied,
+    aiMessageLength: analytics.aiMessageLength,
+    errors: analytics.errors && analytics.errors.length > 0 ? analytics.errors : null
+  }, null, 2));
+  
+  // În viitor, aceste date pot fi trimise către un analytics service:
+  // await sendToAnalytics(analytics);
+}
+
+// Generate analytics summary
+function generateAnalyticsSummary(analytics: NotificationAnalytics[]) {
+  const total = analytics.length;
+  const sent = analytics.filter(a => a.deliveryStatus === 'sent').length;
+  const failed = analytics.filter(a => a.deliveryStatus === 'failed').length;
+  const delayed = analytics.filter(a => a.deliveryStatus === 'delayed').length;
+  const avgProcessingTime = analytics.reduce((sum, a) => sum + a.processingTime, 0) / total;
+  
+  return {
+    totalAlerts: total,
+    deliveryRate: `${((sent / total) * 100).toFixed(1)}%`,
+    sentCount: sent,
+    failedCount: failed,
+    delayedCount: delayed,
+    averageProcessingTime: `${avgProcessingTime.toFixed(0)}ms`,
+    smartTimingUsage: `${((analytics.filter(a => a.smartTimingApplied).length / total) * 100).toFixed(1)}%`
+  };
+}
+
+// Smart Timing: verifică dacă este momentul potrivit pentru notificări
+function isAppropriateTimeForAlert(alertLevel: string): { shouldSend: boolean, reason: string } {
+  // Utilizează timezone-ul României (UTC+2/UTC+3)
+  const now = new Date();
+  const romanianTime = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Bucharest"}));
+  const hour = romanianTime.getHours();
+  
+  // Alertele DANGER se trimit întotdeauna imediat
+  if (alertLevel === 'danger') {
+    return {
+      shouldSend: true,
+      reason: `DANGER alert - sent immediately at ${hour}:${romanianTime.getMinutes().toString().padStart(2, '0')}`
+    };
+  }
+  
+  // Pentru alte nivele, evită orele de odihnă (22:00 - 06:00)
+  const isNightTime = hour >= 22 || hour <= 6;
+  
+  if (isNightTime) {
+    const nextMorningHour = hour <= 6 ? `0${6 + (6 - hour)}:00` : '06:00';
+    return {
+      shouldSend: false,
+      reason: `Non-critical alert delayed - night time (${hour}:${romanianTime.getMinutes().toString().padStart(2, '0')}). Would be scheduled for ${nextMorningHour}`
+    };
+  }
+  
+  return {
+    shouldSend: true,
+    reason: `Appropriate time for alert (${hour}:${romanianTime.getMinutes().toString().padStart(2, '0')})`
+  };
+}
+
 // Funcție pentru generarea mesajelor AI personalizate
 async function generateAiMessage(data: WindAlertData): Promise<string> {
   if (!OPENROUTER_API_KEY) {
@@ -126,10 +218,10 @@ function createPushTemplate(data: WindAlertData, aiMessage: string) {
     app_id: APP_ID,
     included_segments: ['Subscribed Users'],
     headings: { 
-      en: personalizedTitle
+      ro: personalizedTitle
     },
     contents: { 
-      en: aiMessage 
+      ro: aiMessage 
     },
     url: 'https://wind.qub3.uk/',
     data: {
@@ -157,7 +249,21 @@ function createSmsTemplate(data: WindAlertData, aiMessage: string): string {
     }
   };
 
-  return `${getAlertEmoji(data.alertLevel)} ${aiMessage} - Wind Warning: https://wind.qub3.uk`;
+  const baseTemplate = `${getAlertEmoji(data.alertLevel)} {MESSAGE} - Wind Warning: https://wind.qub3.uk`;
+  const staticParts = baseTemplate.replace('{MESSAGE}', '');
+  const maxMessageLength = 160 - staticParts.length;
+  
+  // Trunchează mesajul AI dacă este prea lung pentru SMS
+  let truncatedMessage = aiMessage;
+  if (aiMessage.length > maxMessageLength) {
+    truncatedMessage = aiMessage.substring(0, maxMessageLength - 3) + '...';
+    console.warn(`SMS message truncated from ${aiMessage.length} to ${truncatedMessage.length} characters`);
+  }
+  
+  const finalSms = `${getAlertEmoji(data.alertLevel)} ${truncatedMessage} - Wind Warning: https://wind.qub3.uk`;
+  console.log(`SMS length: ${finalSms.length}/160 characters`);
+  
+  return finalSms;
 }
 
 function createEmailTemplate(data: WindAlertData, aiMessage: string): string {
@@ -413,7 +519,10 @@ export const handler: Handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 204,
-      headers: corsHeaders(ALLOWED_ORIGIN)
+      headers: {
+        ...corsHeaders(ALLOWED_ORIGIN),
+        'Content-Type': 'application/json; charset=utf-8'
+      }
     };
   }
 
@@ -438,6 +547,11 @@ export const handler: Handler = async (event) => {
     if (body.windSpeed !== undefined && body.location && body.userThreshold) {
       console.log('🎯 AI Mode triggered with data:', body);
       
+      // Start analytics tracking
+      const startTime = Date.now();
+      const trackingId = generateTrackingId();
+      console.log('🏷️ Tracking ID:', trackingId);
+      
       const windData: WindAlertData = {
         windSpeed: Number(body.windSpeed),
         windGust: Number(body.windGust) || Number(body.windSpeed),
@@ -456,8 +570,59 @@ export const handler: Handler = async (event) => {
         console.log('❌ Validation failed: windSpeed invalid');
         return {
           statusCode: 400,
-          headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
+          headers: { 'content-type': 'application/json; charset=utf-8', ...corsHeaders(ALLOWED_ORIGIN) },
           body: JSON.stringify({ ok: false, error: 'windSpeed must be a positive number' })
+        };
+      }
+
+      // Smart Timing Check
+      const timingCheck = isAppropriateTimeForAlert(windData.alertLevel);
+      console.log('🕰 Smart Timing Check:', timingCheck.reason);
+      
+      if (!timingCheck.shouldSend) {
+        console.log('🌙 Alert delayed due to night time - non-critical alert');
+        
+        // Track delayed notification
+        const delayedAnalytics: NotificationAnalytics = {
+          id: trackingId,
+          timestamp: new Date().toISOString(),
+          type: 'push',
+          alertLevel: windData.alertLevel,
+          windSpeed: windData.windSpeed,
+          userThreshold: windData.userThreshold,
+          location: windData.location,
+          aiMessageLength: 0, // Nu s-a generat AI message
+          deliveryStatus: 'delayed',
+          processingTime: Date.now() - startTime,
+          smartTimingApplied: true,
+          errors: []
+        };
+        
+        trackNotificationAttempt(delayedAnalytics);
+        
+        return {
+          statusCode: 200,
+          headers: { 
+            'content-type': 'application/json; charset=utf-8', 
+            ...corsHeaders(ALLOWED_ORIGIN) 
+          },
+          body: JSON.stringify({
+            ok: true,
+            delayed: true,
+            trackingId: trackingId,
+            reason: timingCheck.reason,
+            message: 'Alert scheduled for appropriate time',
+            data: {
+              alertLevel: windData.alertLevel,
+              currentTime: new Date().toLocaleString("ro-RO", {timeZone: "Europe/Bucharest"}),
+              suggestedDeliveryTime: 'Tomorrow at 06:00'
+            },
+            analytics: {
+              deliveryStatus: 'delayed',
+              processingTime: `${delayedAnalytics.processingTime}ms`,
+              smartTimingApplied: true
+            }
+          })
         };
       }
 
@@ -492,9 +657,29 @@ export const handler: Handler = async (event) => {
         console.error('OneSignal push error:', pushData);
       }
 
+      // Generate complete analytics for sent notification
+      const sentAnalytics: NotificationAnalytics = {
+        id: trackingId,
+        timestamp: new Date().toISOString(),
+        type: 'push',
+        alertLevel: windData.alertLevel,
+        windSpeed: windData.windSpeed,
+        userThreshold: windData.userThreshold,
+        location: windData.location,
+        aiMessageLength: aiMessage.length,
+        deliveryStatus: pushResponse.ok ? 'sent' : 'failed',
+        oneSignalResponse: pushData,
+        errors: pushData?.errors || [],
+        processingTime: Date.now() - startTime,
+        smartTimingApplied: false // Nu s-a aplicat smart timing dacă am ajuns aici
+      };
+      
+      trackNotificationAttempt(sentAnalytics);
+      
       // Returnează răspunsul cu template-urile generate
       const responseData = {
         ok: true, 
+        trackingId: trackingId,
         data: {
           push: {
             sent: pushResponse.ok,
@@ -506,15 +691,25 @@ export const handler: Handler = async (event) => {
             email: emailTemplate
           },
           aiMessage: aiMessage,
-          windData: windData
+          windData: windData,
+          analytics: {
+            deliveryStatus: sentAnalytics.deliveryStatus,
+            processingTime: `${sentAnalytics.processingTime}ms`,
+            aiMessageLength: sentAnalytics.aiMessageLength,
+            smartTimingApplied: sentAnalytics.smartTimingApplied,
+            oneSignalErrors: sentAnalytics.errors && sentAnalytics.errors.length > 0 ? sentAnalytics.errors : null
+          }
         }
       };
       
-      console.log('📤 Returning response:', responseData);
+      console.log('📤 Returning response with analytics:', responseData);
       
       return {
         statusCode: 200,
-        headers: { 'content-type': 'application/json', ...corsHeaders(ALLOWED_ORIGIN) },
+        headers: { 
+          'content-type': 'application/json; charset=utf-8', 
+          ...corsHeaders(ALLOWED_ORIGIN) 
+        },
         body: JSON.stringify(responseData)
       };
     }

@@ -1,7 +1,7 @@
 // lib/onesignal.ts
 // Wrapper sigur pentru OneSignal Web SDK v16, compatibil cu Next/Netlify (SSR)
 
-// Nu mai declarăm nimic global - folosim tipurile existente din OneSignal SDK
+// TypeScript types pentru OneSignal se gestionează prin casting
 
 const isClient = () => typeof window !== 'undefined';
 
@@ -22,7 +22,7 @@ async function waitForSDKReady(timeoutMs = 8000) {
 
   await new Promise<void>((resolve, reject) => {
     const t = setTimeout(() => reject(new Error('Timeout așteptând OneSignal SDK')), timeoutMs);
-    (window.OneSignalDeferred = window.OneSignalDeferred || []).push(() => {
+    ((window as any).OneSignalDeferred = (window as any).OneSignalDeferred || []).push(() => {
       clearTimeout(t);
       resolve();
     });
@@ -41,37 +41,68 @@ export const oneSignal = {
   async isSubscribed(): Promise<boolean> {
     try {
       console.log('🔍 OneSignal isSubscribed: Starting check...');
-      await waitForSDKReady();
-      const os = ensureOS();
       
-      console.log('🔍 OneSignal object:', os);
-      console.log('🔍 OneSignal.Notifications:', os.Notifications);
+      try {
+        await waitForSDKReady();
+      } catch (sdkError) {
+        console.warn('🔍 OneSignal SDK not ready:', sdkError);
+        return false;
+      }
+      
+      let os;
+      try {
+        os = ensureOS();
+      } catch (osError) {
+        console.warn('🔍 OneSignal not available:', osError);
+        return false;
+      }
+      
+      console.log('🔍 OneSignal object available:', !!os);
+      
+      if (!os) {
+        console.warn('🔍 OneSignal object is null/undefined');
+        return false;
+      }
+      
+      console.log('🔍 OneSignal.Notifications available:', !!os.Notifications);
+      console.log('🔍 OneSignal.User available:', !!os.User);
       
       // Încarcă mai multe metode pentru a detecta subscribe state
       let isSubscribed = false;
       
-      if (os.Notifications && typeof os.Notifications.isSubscribed === 'function') {
-        isSubscribed = await os.Notifications.isSubscribed();
-        console.log('🔍 Method 1 (isSubscribed()):', isSubscribed);
-      } else if (os.User && os.User.PushSubscription) {
-        // Fallback pentru v16
-        isSubscribed = os.User.PushSubscription.J || false;
-        console.log('🔍 Method 2 (User.PushSubscription.J):', isSubscribed);
+      try {
+        if (os.Notifications && typeof os.Notifications.isSubscribed === 'function') {
+          isSubscribed = await os.Notifications.isSubscribed();
+          console.log('🔍 Method 1 (isSubscribed()):', isSubscribed);
+        } else if (os.User && os.User.PushSubscription) {
+          // Fallback pentru v16
+          isSubscribed = os.User.PushSubscription.J || false;
+          console.log('🔍 Method 2 (User.PushSubscription.J):', isSubscribed);
+        } else {
+          console.log('🔍 No subscription detection method available');
+        }
+      } catch (subscribeCheckError) {
+        console.warn('🔍 Error checking subscription status:', subscribeCheckError);
+        isSubscribed = false;
       }
       
       // De asemenea verifică și browser permission
-      if ('Notification' in window) {
-        const permission = Notification.permission;
-        console.log('🔍 Browser notification permission:', permission);
-        if (permission === 'denied') {
-          isSubscribed = false;
+      try {
+        if ('Notification' in window) {
+          const permission = Notification.permission;
+          console.log('🔍 Browser notification permission:', permission);
+          if (permission === 'denied') {
+            isSubscribed = false;
+          }
         }
+      } catch (permError) {
+        console.warn('🔍 Error checking browser permission:', permError);
       }
       
       console.log('🔍 Final isSubscribed result:', isSubscribed);
       return isSubscribed;
     } catch (error) {
-      console.error('🔍 OneSignal isSubscribed error:', error);
+      console.error('🔍 OneSignal isSubscribed unexpected error:', error);
       return false;
     }
   },
@@ -79,52 +110,69 @@ export const oneSignal = {
   async subscribe(): Promise<boolean> {
     try {
       console.log('🔧 OneSignal subscribe: Starting process...');
-      await waitForSDKReady();
-      const os = ensureOS();
+      
+      // Prinde toate erorile în waitForSDKReady
+      try {
+        await waitForSDKReady();
+      } catch (sdkError) {
+        console.warn('🔧 OneSignal SDK not ready for subscription:', sdkError);
+        return false;
+      }
+      
+      // Prinde erorile în ensureOS
+      let os;
+      try {
+        os = ensureOS();
+      } catch (osError) {
+        console.warn('🔧 OneSignal not available for subscription:', osError);
+        return false;
+      }
+      
+      if (!os) {
+        console.warn('🔧 OneSignal object is null/undefined during subscription');
+        return false;
+      }
       
       console.log('🔧 OneSignal subscribe: SDK ready, checking current permission...');
       
-      // Debug: Inspect the actual OneSignal object structure
-      console.log('🔧 OneSignal object keys:', Object.keys(os));
-      console.log('🔧 OneSignal.Notifications:', os.Notifications);
-      if (os.Notifications) {
-        console.log('🔧 OneSignal.Notifications keys:', Object.keys(os.Notifications));
-      }
-      console.log('🔧 OneSignal.User:', os.User);
-      if (os.User) {
-        console.log('🔧 OneSignal.User keys:', Object.keys(os.User));
-        if (os.User.PushSubscription) {
-          console.log('🔧 OneSignal.User.PushSubscription:', os.User.PushSubscription);
-          console.log('🔧 OneSignal.User.PushSubscription keys:', Object.keys(os.User.PushSubscription));
+      // Debug în mod sigur - prindem și aici erorile
+      try {
+        console.log('🔧 OneSignal object available:', !!os);
+        console.log('🔧 OneSignal.Notifications available:', !!os?.Notifications);
+        console.log('🔧 OneSignal.User available:', !!os?.User);
+        
+        if (os.User?.PushSubscription) {
+          console.log('🔧 OneSignal.User.PushSubscription available:', true);
         }
-      }
-      
-      // Check for common OneSignal methods
-      const commonMethods = ['requestPermission', 'registerForPushNotifications', 'showSlidedownPrompt', 'showCategorySlidedown', 'init', 'on', 'off', 'once', 'push'];
-      commonMethods.forEach(method => {
-        console.log(`🔧 OneSignal.${method}:`, typeof os[method]);
-      });
-      
-      // Check PushSubscription methods
-      if (os.User.PushSubscription) {
-        const pushSubProps = Object.getOwnPropertyNames(os.User.PushSubscription);
-        const pushSubProto = Object.getOwnPropertyNames(Object.getPrototypeOf(os.User.PushSubscription));
-        console.log('🔧 OneSignal.User.PushSubscription own properties:', pushSubProps);
-        console.log('🔧 OneSignal.User.PushSubscription prototype methods:', pushSubProto);
+      } catch (debugError) {
+        console.warn('🔧 Error during debug logging:', debugError);
+        // Nu ieșim, continuăm cu subscribe
       }
       
       // Check current permission status first
-      const currentPermission = 'Notification' in window ? Notification.permission : 'unsupported';
-      console.log('🔧 OneSignal subscribe: Current browser permission:', currentPermission);
+      let currentPermission = 'unsupported';
+      try {
+        currentPermission = 'Notification' in window ? Notification.permission : 'unsupported';
+        console.log('🔧 OneSignal subscribe: Current browser permission:', currentPermission);
+      } catch (permCheckError) {
+        console.warn('🔧 Error checking browser permission:', permCheckError);
+      }
       
       if (currentPermission === 'denied') {
         console.log('🔧 OneSignal subscribe: Permission is denied by user');
         return false;
       }
       
-      // Check if already subscribed (J property indicates subscription status)
-      const alreadySubscribed = os.User.PushSubscription.J;
-      console.log('🔧 OneSignal subscribe: Already subscribed?', alreadySubscribed);
+      // Check if already subscribed în mod sigur
+      let alreadySubscribed = false;
+      try {
+        if (os?.User?.PushSubscription) {
+          alreadySubscribed = os.User.PushSubscription.J || false;
+          console.log('🔧 OneSignal subscribe: Already subscribed?', alreadySubscribed);
+        }
+      } catch (checkSubError) {
+        console.warn('🔧 Error checking current subscription:', checkSubError);
+      }
       
       if (alreadySubscribed) {
         console.log('🔧 OneSignal subscribe: User is already subscribed');
@@ -132,43 +180,60 @@ export const oneSignal = {
       }
       
       // Try different OneSignal subscription approaches
-      console.log('🔧 OneSignal subscribe: Trying multiple subscription approaches...');
+      console.log('🔧 OneSignal subscribe: Trying subscription approaches...');
       
-      try {
-        // Approach 1: Try to find OptIn method on PushSubscription
-        if (typeof os.User.PushSubscription.optIn === 'function') {
-          console.log('🔧 OneSignal subscribe: Trying PushSubscription.optIn()');
-          await os.User.PushSubscription.optIn();
+      let subscriptionSuccess = false;
+      
+      // Approach 1: Try OneSignal API methods
+      if (os?.User?.PushSubscription) {
+        try {
+          if (typeof os.User.PushSubscription.optIn === 'function') {
+            console.log('🔧 OneSignal subscribe: Trying PushSubscription.optIn()');
+            await Promise.resolve(os.User.PushSubscription.optIn()).catch(err => {
+              console.warn('🔧 optIn failed:', err);
+            });
+          } else if (typeof os.User.PushSubscription.subscribe === 'function') {
+            console.log('🔧 OneSignal subscribe: Trying PushSubscription.subscribe()');
+            await Promise.resolve(os.User.PushSubscription.subscribe()).catch(err => {
+              console.warn('🔧 subscribe failed:', err);
+            });
+          } else {
+            console.log('🔧 OneSignal subscribe: No subscription method available, trying direct property');
+            os.User.PushSubscription.J = true;
+          }
+        } catch (apiError) {
+          console.warn('🔧 Error calling OneSignal API:', apiError);
         }
-        // Approach 2: Try to find subscribe method on PushSubscription  
-        else if (typeof os.User.PushSubscription.subscribe === 'function') {
-          console.log('🔧 OneSignal subscribe: Trying PushSubscription.subscribe()');
-          await os.User.PushSubscription.subscribe();
-        }
-        // Approach 3: Try setting J property directly
-        else {
-          console.log('🔧 OneSignal subscribe: Setting J property directly');
-          os.User.PushSubscription.J = true;
-        }
-        
-        // Approach 4: If all else fails, use browser native permission and hope OneSignal picks it up
-        if (!os.User.PushSubscription.J && 'Notification' in window && Notification.permission === 'default') {
-          console.log('🔧 OneSignal subscribe: Fallback to browser native permission');
-          const permission = await Notification.requestPermission();
-          console.log('🔧 OneSignal subscribe: Browser permission result:', permission);
-        }
-        
-        // Check final subscription status
-        const nowSubscribed = os.User.PushSubscription.J;
-        console.log('🔧 OneSignal subscribe: Final subscription status:', nowSubscribed);
-        
-        return nowSubscribed ?? false;
-      } catch (permError) {
-        console.error('🔧 OneSignal subscribe: Permission/subscription error:', permError);
-        return false;
       }
+      
+      // Approach 2: Fallback to browser native permission
+      if (!subscriptionSuccess) {
+        try {
+          if ('Notification' in window && Notification.permission === 'default') {
+            console.log('🔧 OneSignal subscribe: Fallback to browser native permission');
+            const permission = await Notification.requestPermission();
+            console.log('🔧 OneSignal subscribe: Browser permission result:', permission);
+            subscriptionSuccess = permission === 'granted';
+          }
+        } catch (nativePermError) {
+          console.warn('🔧 Error requesting native browser permission:', nativePermError);
+        }
+      }
+      
+      // Check final subscription status safely
+      let finalSubscribed = false;
+      try {
+        if (os?.User?.PushSubscription) {
+          finalSubscribed = os.User.PushSubscription.J || false;
+        }
+        console.log('🔧 OneSignal subscribe: Final subscription status:', finalSubscribed);
+      } catch (finalCheckError) {
+        console.warn('🔧 Error checking final subscription status:', finalCheckError);
+      }
+      
+      return finalSubscribed;
     } catch (e) {
-      console.error('🔧 OneSignal subscribe error (detailed):', {
+      console.error('🔧 OneSignal subscribe unexpected error:', {
         error: e,
         message: e instanceof Error ? e.message : 'Unknown error',
         stack: e instanceof Error ? e.stack : 'No stack trace'
@@ -179,12 +244,103 @@ export const oneSignal = {
 
   async unsubscribe(): Promise<boolean> {
     try {
-      await waitForSDKReady();
-      const os = ensureOS();
-      await os.Notifications.unsubscribe();
-      return !(await os.Notifications.isSubscribed());
+      console.log('🔧 OneSignal unsubscribe: Starting process...');
+      
+      try {
+        await waitForSDKReady();
+      } catch (sdkError) {
+        console.warn('🔧 OneSignal SDK not ready for unsubscription:', sdkError);
+        return false;
+      }
+      
+      let os;
+      try {
+        os = ensureOS();
+      } catch (osError) {
+        console.warn('🔧 OneSignal not available for unsubscription:', osError);
+        return false;
+      }
+      
+      if (!os) {
+        console.warn('🔧 OneSignal object is null/undefined during unsubscription');
+        return false;
+      }
+      
+      console.log('🔧 OneSignal unsubscribe: Checking available methods...');
+      
+      // Debug available methods
+      try {
+        console.log('🔧 OneSignal.Notifications available:', !!os.Notifications);
+        console.log('🔧 OneSignal.User.PushSubscription available:', !!os.User?.PushSubscription);
+        
+        if (os.Notifications) {
+          const notificationMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(os.Notifications));
+          console.log('🔧 Available Notifications methods:', notificationMethods);
+        }
+        
+        if (os.User?.PushSubscription) {
+          const pushSubMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(os.User.PushSubscription));
+          console.log('🔧 Available PushSubscription methods:', pushSubMethods);
+        }
+      } catch (debugError) {
+        console.warn('🔧 Error during unsubscribe debugging:', debugError);
+      }
+      
+      let unsubscribeSuccess = false;
+      
+      // Approach 1: Try PushSubscription optOut
+      if (os.User?.PushSubscription) {
+        try {
+          if (typeof os.User.PushSubscription.optOut === 'function') {
+            console.log('🔧 OneSignal unsubscribe: Trying PushSubscription.optOut()');
+            await Promise.resolve(os.User.PushSubscription.optOut()).catch(err => {
+              console.warn('🔧 optOut failed:', err);
+            });
+          } else if (typeof os.User.PushSubscription.unsubscribe === 'function') {
+            console.log('🔧 OneSignal unsubscribe: Trying PushSubscription.unsubscribe()');
+            await Promise.resolve(os.User.PushSubscription.unsubscribe()).catch(err => {
+              console.warn('🔧 unsubscribe failed:', err);
+            });
+          } else {
+            console.log('🔧 OneSignal unsubscribe: No unsubscribe method available, setting J property to false');
+            os.User.PushSubscription.J = false;
+          }
+        } catch (pushSubError) {
+          console.warn('🔧 Error calling PushSubscription unsubscribe:', pushSubError);
+        }
+      }
+      
+      // Approach 2: Try direct property manipulation
+      try {
+        if (os.User?.PushSubscription && os.User.PushSubscription.J) {
+          console.log('🔧 OneSignal unsubscribe: Setting J property directly to false');
+          os.User.PushSubscription.J = false;
+          unsubscribeSuccess = true;
+        }
+      } catch (directError) {
+        console.warn('🔧 Error setting J property:', directError);
+      }
+      
+      // Check final status
+      let finalUnsubscribed = false;
+      try {
+        if (os.User?.PushSubscription) {
+          const stillSubscribed = os.User.PushSubscription.J || false;
+          finalUnsubscribed = !stillSubscribed;
+          console.log('🔧 OneSignal unsubscribe: Final subscription status (should be false):', stillSubscribed);
+          console.log('🔧 OneSignal unsubscribe: Successfully unsubscribed:', finalUnsubscribed);
+        }
+      } catch (finalCheckError) {
+        console.warn('🔧 Error checking final unsubscription status:', finalCheckError);
+      }
+      
+      return finalUnsubscribed;
     } catch (e) {
-      console.error('OneSignal unsubscribe error:', e);
+      console.error('🔧 OneSignal unsubscribe unexpected error:', {
+        error: e,
+        message: e instanceof Error ? e.message : 'Unknown error',
+        stack: e instanceof Error ? e.stack : 'No stack trace'
+      });
       return false;
     }
   },

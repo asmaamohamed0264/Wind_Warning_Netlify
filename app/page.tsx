@@ -32,7 +32,7 @@ export default function Home() {
 
   // Load saved threshold from localStorage
   useEffect(() => {
-    const savedThreshold = localStorage.getItem('alert_threshold');
+    const savedThreshold = localStorage.getItem('wind_alert_threshold');
     if (savedThreshold) {
       setAlertThreshold(parseInt(savedThreshold, 10));
     }
@@ -40,7 +40,7 @@ export default function Home() {
 
   // Save threshold to localStorage when it changes
   useEffect(() => {
-    localStorage.setItem('alert_threshold', alertThreshold.toString());
+    localStorage.setItem('wind_alert_threshold', alertThreshold.toString());
   }, [alertThreshold]);
 
   // Monitor online status
@@ -78,10 +78,13 @@ export default function Home() {
   }, [isClient]);
 
   useEffect(() => {
+    if (weatherData) {
+      checkCurrentConditions();
+    }
     if (forecastData && forecastData.length > 0) {
       analyzeForecasts();
     }
-  }, [forecastData, alertThreshold]);
+  }, [weatherData, forecastData, alertThreshold]);
 
   const fetchWeatherData = async (showRefreshToast = false) => {
     if (showRefreshToast) {
@@ -142,6 +145,47 @@ export default function Home() {
       }
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const checkCurrentConditions = () => {
+    if (!weatherData) {
+      return;
+    }
+    
+    const currentWindSpeed = weatherData.windSpeed;
+    const currentWindGust = weatherData.windGust;
+    const maxCurrentWind = Math.max(currentWindSpeed, currentWindGust);
+    
+    // Verifică dacă vântul actual depășește pragul
+    if (maxCurrentWind > alertThreshold) {
+      let level: AlertLevel;
+      if (maxCurrentWind >= alertThreshold * 1.5) {
+        level = 'danger';
+      } else if (maxCurrentWind >= alertThreshold * 1.2) {
+        level = 'warning';
+      } else {
+        level = 'caution';
+      }
+      
+      console.log(`🚨 CURRENT CONDITIONS ALERT: Wind ${maxCurrentWind} km/h exceeds threshold ${alertThreshold} km/h - Level: ${level}`);
+      
+      setAlertLevel(level);
+      setCurrentAlert({
+        level,
+        maxWindSpeed: maxCurrentWind,
+        time: new Date().toISOString(),
+        message: generateAlertMessage(level, maxCurrentWind),
+        isCurrent: true // Flag pentru a diferenția de alertele de prognoză
+      });
+      
+      // Trigger notifications for current dangerous conditions
+      if (level === 'caution' || level === 'warning' || level === 'danger') {
+        console.log('🔔 Triggering notifications for current wind conditions');
+        triggerNotifications(level, maxCurrentWind, new Date().toISOString());
+      }
+    } else {
+      console.log(`✅ Current wind conditions OK: ${maxCurrentWind} km/h <= ${alertThreshold} km/h threshold`);
     }
   };
 
