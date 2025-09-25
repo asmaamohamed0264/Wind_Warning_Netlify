@@ -150,7 +150,7 @@ async function generateAiMessage(data: WindAlertData): Promise<string> {
   // Seed pentru varietatea umorului bazat pe oră (schimbă la fiecare oră)
   const humorSeed = Math.floor(Date.now() / (1000 * 60 * 60)); // Schimbă la fiecare oră
   
-  const prompt = `Scrie un mesaj amuzant de alertă vreme pentru LOREDANA (pe care o poți chema "Lori dragă"). Trebuie să fie în română perfectă, amuzant și prietenos.
+  const prompt = `Scrie un mesaj amuzant de alertă vreme pentru LOREDANA (pe care o poți chema "Lore dragă"). Trebuie să fie în română perfectă, amuzant și prietenos.
 
 INFO METEO:
 • Vânt: ${data.windSpeed} km/h (pragul ei: ${data.userThreshold} km/h)
@@ -159,7 +159,7 @@ INFO METEO:
 • Nivel: ${getAlertLevelText(data.alertLevel)}
 
 CUM SĂ SCRII:
-• Începe cu "Lori dragă" sau "Dragă Lori"
+• Începe cu "Lore dragă" sau "Dragă Lore"
 • Folosește română naturală, nu traduceri ciudate
 • Fă-o să râdă, dar să înțeleagă că e periculos
 • Menționează ${data.windSpeed} km/h și că a depășit ${data.userThreshold} km/h
@@ -167,7 +167,7 @@ CUM SĂ SCRII:
 • Maxim 100 caractere!
 
 EXEMPLE BUNE:
-"Lori dragă, vântul de ${data.windSpeed} km/h ți-a rupt pragul de ${data.userThreshold}! Ține-te de pălărie 😉🌬️"
+"Lore dragă, vântul de ${data.windSpeed} km/h ți-a rupt pragul de ${data.userThreshold}! Ține-te de pălărie 😉🌬️"
 
 Scrie DOAR mesajul, nimic altceva:`
 
