@@ -216,7 +216,7 @@ function createPushTemplate(data: WindAlertData, aiMessage: string) {
 
   return {
     app_id: APP_ID,
-    included_segments: ['Subscribed Users'],
+    included_segments: ['All'],
     headings: { 
       en: personalizedTitle
     },
