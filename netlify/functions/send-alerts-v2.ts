@@ -662,6 +662,45 @@ export const handler: Handler = async (event) => {
         console.error('OneSignal push error:', pushData);
       }
 
+      // Trimâte SMS separat către subscriber-ul SMS
+      console.log('📱 Trimit SMS notification...');
+      const smsResponse = await fetch('https://api.onesignal.com/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          Authorization: `Bearer ${REST_KEY}`,
+        },
+        body: JSON.stringify({
+          app_id: APP_ID,
+          include_player_ids: ['059c692c-44d6-4a9a-b06f-e0da91a22376'], // SMS subscriber specific
+          name: `Wind SMS Alert ${Date.now()}`,
+          contents: { en: smsTemplate }
+        }),
+      });
+      
+      const smsData = await smsResponse.json();
+      console.log('📱 SMS Response:', smsData);
+      
+      // Trimâte Email separat către subscriber-ul Email
+      console.log('📧 Trimit Email notification...');
+      const emailResponse = await fetch('https://api.onesignal.com/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          Authorization: `Bearer ${REST_KEY}`,
+        },
+        body: JSON.stringify({
+          app_id: APP_ID,
+          include_player_ids: ['5959e86c-ce41-42f7-9cd0-2e747d0f4238'], // Email subscriber specific
+          name: `Wind Email Alert ${Date.now()}`,
+          subject: { en: `🚨 Alertă Vânt: ${windData.windSpeed} km/h - ${windData.location}` },
+          email_body: emailTemplate
+        }),
+      });
+      
+      const emailData = await emailResponse.json();
+      console.log('📧 Email Response:', emailData);
+
       // Generate complete analytics for sent notification
       const sentAnalytics: NotificationAnalytics = {
         id: trackingId,
@@ -689,6 +728,14 @@ export const handler: Handler = async (event) => {
           push: {
             sent: pushResponse.ok,
             data: pushData
+          },
+          sms: {
+            sent: smsResponse.ok,
+            data: smsData
+          },
+          email: {
+            sent: emailResponse.ok,
+            data: emailData
           },
           templates: {
             push: pushTemplate,
