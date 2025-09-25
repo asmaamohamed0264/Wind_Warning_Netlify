@@ -216,7 +216,12 @@ function createPushTemplate(data: WindAlertData, aiMessage: string) {
 
   return {
     app_id: APP_ID,
-    included_segments: ['Subscribed Users'],
+    // Folosește Player IDs specific pentru utilizatori activi
+    include_player_ids: [
+      '65b462dc-9e2f-44c3-9ba5-de092093f4e2', // SMS subscriber
+      '5959e86c-ce41-42f7-9cd0-2e747d0f4238', // Email subscriber  
+      'b0c31784-f232-4333-abcf-3525c2d9ebdc'  // Push subscriber (even if unsubscribed, will try)
+    ],
     headings: { 
       ro: personalizedTitle
     },
@@ -656,6 +661,44 @@ export const handler: Handler = async (event) => {
       if (!pushResponse.ok) {
         console.error('OneSignal push error:', pushData);
       }
+      
+      // Trimăte SMS direct prin OneSignal API
+      const smsResponse = await fetch('https://api.onesignal.com/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          Authorization: `Bearer ${REST_KEY}`,
+        },
+        body: JSON.stringify({
+          app_id: APP_ID,
+          include_player_ids: ['65b462dc-9e2f-44c3-9ba5-de092093f4e2'], // SMS subscriber
+          contents: { en: smsTemplate },
+          sms_from: 'WindAlert',
+          channel_for_external_user_ids: 'sms'
+        }),
+      });
+      
+      const smsData = await smsResponse.json();
+      console.log('SMS Response:', smsData);
+      
+      // Trimăte Email direct prin OneSignal API  
+      const emailResponse = await fetch('https://api.onesignal.com/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          Authorization: `Bearer ${REST_KEY}`,
+        },
+        body: JSON.stringify({
+          app_id: APP_ID,
+          include_player_ids: ['5959e86c-ce41-42f7-9cd0-2e747d0f4238'], // Email subscriber
+          subject: { en: `🚨 Alertă Vânt: ${windData.windSpeed} km/h` },
+          email_body: emailTemplate,
+          channel_for_external_user_ids: 'email'
+        }),
+      });
+      
+      const emailData = await emailResponse.json();
+      console.log('Email Response:', emailData);
 
       // Generate complete analytics for sent notification
       const sentAnalytics: NotificationAnalytics = {
@@ -684,6 +727,14 @@ export const handler: Handler = async (event) => {
           push: {
             sent: pushResponse.ok,
             data: pushData
+          },
+          sms: {
+            sent: smsResponse.ok,
+            data: smsData
+          },
+          email: {
+            sent: emailResponse.ok,
+            data: emailData
           },
           templates: {
             push: pushTemplate,
