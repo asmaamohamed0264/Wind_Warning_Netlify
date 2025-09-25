@@ -51,7 +51,12 @@ export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }:
         <CardHeader>
           <CardTitle className="flex items-center justify-between text-xl">
             <div className="flex items-center">
-              <img src="/1000088934-modified.png" alt="Monitor Vânt" className="mr-2 h-6 w-6" />
+              <div className="flex items-center mr-3">
+                <img src="/1000088934-modified.png" alt="Monitor Vânt" className="mr-2 h-6 w-6" />
+                <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded-full text-xs font-semibold mr-2">
+                  ACUM
+                </span>
+              </div>
               Condiții Actuale de Vânt
             </div>
             <div className="text-sm font-normal text-gray-400">
@@ -143,11 +148,16 @@ export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }:
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center">
-              <img src="/1000088934-modified.png" alt="Prognoză" className="mr-2 h-5 w-5" />
-              Prognoză Vânt 8 Ore
+              <div className="flex items-center mr-3">
+                <img src="/1000088934-modified.png" alt="Prognoză" className="mr-2 h-5 w-5" />
+                <span className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full text-xs font-semibold mr-2">
+                  PROGNOZĂ
+                </span>
+              </div>
+              Vânt Următoarele 8 Ore
             </div>
             <div className="text-sm font-normal text-gray-400">
-              Următoarele {forecast.length} ore • Actualizări la fiecare 3 ore
+              {forecast.length} puncte de prognoză • La fiecare 3 ore
             </div>
           </CardTitle>
         </CardHeader>

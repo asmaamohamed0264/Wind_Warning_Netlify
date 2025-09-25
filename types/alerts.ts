@@ -5,5 +5,7 @@ export interface Alert {
   maxWindSpeed: number;
   time: string;
   message: string;
-  timestamp: string;
+  timestamp?: string;
+  isCurrent?: boolean;    // true pentru alerte bazate pe condiții actuale
+  isForecast?: boolean;   // true pentru alerte bazate pe prognoză
 }

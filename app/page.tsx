@@ -157,7 +157,9 @@ export default function Home() {
     const currentWindGust = weatherData.windGust;
     const maxCurrentWind = Math.max(currentWindSpeed, currentWindGust);
     
-    // Verifică dacă vântul actual depășește pragul
+    console.log(`📊 CURRENT CONDITIONS CHECK: Wind speed: ${currentWindSpeed} km/h, Gusts: ${currentWindGust} km/h, Max: ${maxCurrentWind} km/h, Threshold: ${alertThreshold} km/h`);
+    
+    // Setează alert current separat - nu interferează cu forecast alerts
     if (maxCurrentWind > alertThreshold) {
       let level: AlertLevel;
       if (maxCurrentWind >= alertThreshold * 1.5) {
@@ -168,15 +170,15 @@ export default function Home() {
         level = 'caution';
       }
       
-      console.log(`🚨 CURRENT CONDITIONS ALERT: Wind ${maxCurrentWind} km/h exceeds threshold ${alertThreshold} km/h - Level: ${level}`);
+      console.log(`🚨 CURRENT CONDITIONS ALERT: Wind ${maxCurrentWind} km/h exceeds threshold - Level: ${level}`);
       
-      setAlertLevel(level);
+      // Setăm alert current cu prioritate - va fi handled în logica de prioritizare
       setCurrentAlert({
         level,
         maxWindSpeed: maxCurrentWind,
         time: new Date().toISOString(),
-        message: generateAlertMessage(level, maxCurrentWind),
-        isCurrent: true // Flag pentru a diferenția de alertele de prognoză
+        message: generateAlertMessage(level, maxCurrentWind, true), // true = isCurrent
+        isCurrent: true
       });
       
       // Trigger notifications for current dangerous conditions
@@ -185,7 +187,12 @@ export default function Home() {
         triggerNotifications(level, maxCurrentWind, new Date().toISOString());
       }
     } else {
-      console.log(`✅ Current wind conditions OK: ${maxCurrentWind} km/h <= ${alertThreshold} km/h threshold`);
+      console.log(`✅ Current wind conditions SAFE: ${maxCurrentWind} km/h <= ${alertThreshold} km/h threshold`);
+      // Nu șterge alerta dacă există una pentru prognoză - doar marchează că current e OK
+      if (currentAlert?.isCurrent) {
+        setCurrentAlert(null);
+        setAlertLevel('normal');
+      }
     }
   };
 
@@ -199,9 +206,12 @@ export default function Home() {
       forecast.windSpeed > alertThreshold || forecast.windGust > alertThreshold
     );
 
+    console.log(`📈 FORECAST ANALYSIS: Checking ${next8Hours.length} forecast points, ${dangerousWinds.length} dangerous periods found`);
+
     if (dangerousWinds.length > 0) {
       const maxWind = Math.max(...dangerousWinds.map(f => Math.max(f.windSpeed, f.windGust)));
       const alertTime = dangerousWinds[0].time;
+      const alertHour = new Date(alertTime).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' });
       
       let level: AlertLevel;
       if (maxWind >= alertThreshold * 1.5) {
@@ -212,32 +222,73 @@ export default function Home() {
         level = 'caution';
       }
 
-      setAlertLevel(level);
-      setCurrentAlert({
-        level,
-        maxWindSpeed: maxWind,
-        time: alertTime,
-        message: generateAlertMessage(level, maxWind)
-      });
+      console.log(`⚠️ FORECAST ALERT: Wind ${maxWind} km/h predicted at ${alertHour} - Level: ${level}`);
 
-      // Trigger notifications if this is a new alert
-      if (level === 'caution' || level === 'warning' || level === 'danger') {
+      // Doar setează forecast alert dacă nu există current alert cu prioritate mai mare
+      const shouldSetForecastAlert = !currentAlert || 
+        (currentAlert && !currentAlert.isCurrent) || 
+        (currentAlert && currentAlert.isCurrent && getPriorityScore(level) > getPriorityScore(currentAlert.level));
+
+      if (shouldSetForecastAlert) {
+        setCurrentAlert({
+          level,
+          maxWindSpeed: maxWind,
+          time: alertTime,
+          message: generateAlertMessage(level, maxWind, false, alertTime), // false = isForecast, with time
+          isCurrent: false,
+          isForecast: true
+        });
+        setAlertLevel(level);
+      }
+
+      // Trigger notifications doar dacă e o alertă nouă și semnificativă
+      if ((level === 'warning' || level === 'danger') && shouldSetForecastAlert) {
+        console.log('🔔 Triggering notifications for forecast wind conditions');
         triggerNotifications(level, maxWind, alertTime);
       }
     } else {
-      setAlertLevel('normal');
-      setCurrentAlert(null);
+      console.log('✅ Forecast conditions SAFE - no dangerous winds predicted');
+      // Doar șterge alerta dacă e de prognoză, nu și pe cea curentă
+      if (currentAlert && currentAlert.isForecast && !currentAlert.isCurrent) {
+        setCurrentAlert(null);
+        setAlertLevel('normal');
+      }
     }
   };
 
-  const generateAlertMessage = (level: AlertLevel, windSpeed: number): string => {
+  // Helper function pentru prioritizarea alertelor
+  const getPriorityScore = (level: AlertLevel): number => {
+    switch (level) {
+      case 'danger': return 4;
+      case 'warning': return 3;
+      case 'caution': return 2;
+      case 'normal': return 1;
+      default: return 0;
+    }
+  };
+
+  const generateAlertMessage = (level: AlertLevel, windSpeed: number, isCurrent = false, alertTime?: string): string => {
+    const timeContext = isCurrent 
+      ? 'ACUM' 
+      : alertTime 
+        ? `PROGNOZAT pentru ${new Date(alertTime).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}` 
+        : 'PROGNOZAT';
+    
+    const windSpeedRounded = Math.round(windSpeed);
+    
     switch (level) {
       case 'danger':
-        return `PERICOL MAJOR DE VÂNT! Se așteaptă vânturi de până la ${Math.round(windSpeed)} km/h. Rămâi în interior și fixează imediat toate obiectele mobile.`;
+        return isCurrent 
+          ? `🚨 PERICOL MAJOR ACUM! Vânturi de ${windSpeedRounded} km/h în curs. Rămâi în interior și fixează imediat toate obiectele mobile!`
+          : `⚠️ PERICOL MAJOR ${timeContext}! Se așteaptă vânturi de până la ${windSpeedRounded} km/h. Pregătește-te și evită deplasările!`;
       case 'warning':
-        return `Vânturi puternice prognozate! Vânturi de până la ${Math.round(windSpeed)} km/h. Exercită precauție extremă când ieși afară.`;
+        return isCurrent 
+          ? `⚡ VÂNTURI PUTERNICE ACUM! ${windSpeedRounded} km/h măsurat. Exercită precauție extremă!`
+          : `🌪️ VÂNTURI PUTERNICE ${timeContext}! Până la ${windSpeedRounded} km/h. Planifică cu atenție activitățile!`;
       case 'caution':
-        return `Se așteaptă vânturi moderate. Vânturi de până la ${Math.round(windSpeed)} km/h. Fii atent la schimbările de condiții.`;
+        return isCurrent 
+          ? `💨 Vânturi moderate acum: ${windSpeedRounded} km/h. Fii atent la schimbările de condiții.`
+          : `📊 Vânturi moderate ${timeContext}: până la ${windSpeedRounded} km/h. Monitorizează condițiile.`;
       default:
         return '';
     }
