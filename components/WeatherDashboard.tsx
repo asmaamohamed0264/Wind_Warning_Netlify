@@ -137,7 +137,7 @@ export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }:
         <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 hover:bg-gray-800/70 transition-colors">
           <CardContent className="p-4 text-center">
             <Eye className="h-6 w-6 text-gray-400 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-white">{Math.round(data.visibility / 1000)}</div>
+            <div className="text-2xl font-bold text-white">{Math.round(data.visibility)}</div>
             <div className="text-sm text-gray-400">Vizibilitate (km)</div>
           </CardContent>
         </Card>
