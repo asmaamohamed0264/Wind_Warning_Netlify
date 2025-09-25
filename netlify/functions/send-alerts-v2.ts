@@ -216,7 +216,12 @@ function createPushTemplate(data: WindAlertData, aiMessage: string) {
 
   return {
     app_id: APP_ID,
-    included_segments: ['All'],
+    // Trimăte direct către utilizatorii abonțați din dashboard
+    include_player_ids: [
+      'b0c31784-f232-4333-abcf-3525c2d9ebdc', // Push subscriber (Windows)
+      '5959e86c-ce41-42f7-9cd0-2e747d0f4238', // Email subscriber (bog20us@yahoo.com)
+      '059c692c-44d6-4a9a-b06f-e0da91a22376'  // SMS subscriber (+40765442365)
+    ],
     headings: { 
       en: personalizedTitle
     },
