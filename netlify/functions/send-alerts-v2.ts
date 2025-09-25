@@ -168,15 +168,16 @@ STIL CERUT:
 3. Fă referințe haioase la vânt/vremea din ${data.location}
 4. Include viteza exactă (${data.windSpeed} km/h) și că depășește pragul (${data.userThreshold} km/h)
 5. Adaugă un sfat de siguranță dar într-un mod amuzant
-6. Max 120 caractere, emoji-uri permise
+6. Ține mesajul sub 120 caractere, emoji-uri permise
 7. Să fie personalizat pentru femei (nu folosi "boss")
+8. NU include în mesaj numărul de caractere sau lungimea textului
 
 EXEMPLE STIL AMUZANT:
 - "Lori dragă, vântul face spectacol..."
 - "Dragă, în ${data.location} bate vântul ca..."
 - "Atenție Lori, vântul de ${data.windSpeed} km/h..."
 
-Generează un mesaj amuzant, personalizat pentru Loredana, max 120 caractere.`;
+Generează doar mesajul amuzant pentru Loredana, fără să menționezi lungimea.`
 
   try {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -196,7 +197,13 @@ Generează un mesaj amuzant, personalizat pentru Loredana, max 120 caractere.`;
     const responseData = await response.json();
     
     if (response.ok && responseData.choices && responseData.choices.length > 0) {
-      return responseData.choices[0].message.content.trim();
+      let message = responseData.choices[0].message.content.trim();
+      // Curăță mesajul de orice referință la numărul de caractere
+      message = message.replace(/\s*\([0-9]+\s+caractere\)/gi, '');
+      message = message.replace(/\s*\(Exact [0-9]+\s+caractere[^)]*\)/gi, '');
+      message = message.replace(/\s*\([0-9]+\s*chars?\)/gi, '');
+      message = message.replace(/\s*\([0-9]+\s*ch\)/gi, '');
+      return message.trim();
     } else {
       console.error('OpenRouter API error:', responseData);
       return `Avertizare vânt: ${data.windSpeed} km/h în ${data.location}. Depășește pragul de ${data.userThreshold} km/h. Fii precaut!`;
