@@ -2,7 +2,7 @@
 import type { Handler } from '@netlify/functions';
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const OPENROUTER_MODEL = 'anthropic/claude-3-haiku:beta'; // Claude Haiku free, mai bun pentru română
+const OPENROUTER_MODEL = 'openai/gpt-4o-mini:free'; // GPT-4o-mini free, foarte bun pentru română
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN ?? '*';
 
 function corsHeaders(origin: string) {
