@@ -66,18 +66,19 @@ CONTEXT:
 - Locația: ${data.location}
 
 CERINȚE:
-1. Mesajul să fie în română, scurt și direct (max 120 caractere)
+1. Mesajul să fie în română, scurt și direct
 2. Să menționeze viteza vântului și că depășește pragul personal
 3. Să includă un sfat de siguranță relevant pentru nivelul de alertă
 4. Să fie adaptat pentru ${data.location}
 5. Să fie util și practic, nu doar informativ
+6. NU include în mesaj numărul de caractere sau lungimea textului
 
 EXEMPLE DE SFATURI PE NIVEL:
 - CAUTION: "Fixează obiectele ușoare din exterior"
 - WARNING: "Evită zonele deschise și fixează obiectele mobile"  
 - DANGER: "Rămâi în interior și evită toate activitățile în aer liber"
 
-Generează un mesaj de maximum 120 caractere pentru notificări push/SMS.`;
+Generează un mesaj scurt pentru notificări push/SMS (sub 120 caractere), fără să menționezi lungimea.`
 
   try {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -97,7 +98,13 @@ Generează un mesaj de maximum 120 caractere pentru notificări push/SMS.`;
     const responseData = await response.json();
     
     if (response.ok && responseData.choices && responseData.choices.length > 0) {
-      return responseData.choices[0].message.content.trim();
+      let message = responseData.choices[0].message.content.trim();
+      // Curăță mesajul de orice referință la numărul de caractere
+      message = message.replace(/\s*\([0-9]+\s+caractere\)/gi, '');
+      message = message.replace(/\s*\(Exact [0-9]+\s+caractere[^)]*\)/gi, '');
+      message = message.replace(/\s*\([0-9]+\s*chars?\)/gi, '');
+      message = message.replace(/\s*\([0-9]+\s*ch\)/gi, '');
+      return message.trim();
     } else {
       console.error('OpenRouter API error:', responseData);
       return `Avertizare vânt: ${data.windSpeed} km/h în ${data.location}. Depășește pragul de ${data.userThreshold} km/h. Fii precaut!`;
