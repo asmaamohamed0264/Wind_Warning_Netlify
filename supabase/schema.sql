@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS wind_users (
   email TEXT UNIQUE,
   phone TEXT,
   push_subscription_id TEXT,
+  push_subscription_data TEXT, -- JSON string with full push subscription
   
   -- Setări personalizate
   wind_threshold INTEGER NOT NULL DEFAULT 20, -- Pragul de vânt în km/h
