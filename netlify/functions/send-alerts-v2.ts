@@ -127,11 +127,6 @@ function isAppropriateTimeForAlert(alertLevel: string): { shouldSend: boolean, r
 
 // Funcție pentru generarea mesajelor AI personalizate
 async function generateAiMessage(data: WindAlertData): Promise<string> {
-  if (!OPENROUTER_API_KEY) {
-    console.error('OPENROUTER_API_KEY is not set.');
-    return `Avertizare vânt: ${data.windSpeed} km/h în ${data.location}. Depășește pragul de ${data.userThreshold} km/h. Fii precaut!`;
-  }
-
   const getAlertLevelText = (level: string) => {
     switch (level) {
       case 'danger': return 'PERICOL MAJOR';
@@ -171,39 +166,71 @@ EXEMPLE BUNE:
 
 Scrie DOAR mesajul, nimic altceva:`
 
-  try {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: OPENROUTER_MODEL,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 120,
-        temperature: 0.9, // Temperatura mai mare pentru creativitate și umor
-      }),
-    });
+  // Helper: curăță notele de caractere
+  const clean = (s: string) => s
+    .replace(/\s*\([0-9]+\s+caractere\)/gi, '')
+    .replace(/\s*\(Exact [0-9]+\s+caractere[^)]*\)/gi, '')
+    .replace(/\s*\([0-9]+\s*chars?\)/gi, '')
+    .replace(/\s*\([0-9]+\s*ch\)/gi, '')
+    .trim();
 
-    const responseData = await response.json();
-    
-    if (response.ok && responseData.choices && responseData.choices.length > 0) {
-      let message = responseData.choices[0].message.content.trim();
-      // Curăță mesajul de orice referință la numărul de caractere
-      message = message.replace(/\s*\([0-9]+\s+caractere\)/gi, '');
-      message = message.replace(/\s*\(Exact [0-9]+\s+caractere[^)]*\)/gi, '');
-      message = message.replace(/\s*\([0-9]+\s*chars?\)/gi, '');
-      message = message.replace(/\s*\([0-9]+\s*ch\)/gi, '');
-      return message.trim();
+  // 1) Încearcă OpenRouter (DeepSeek)
+  try {
+    if (OPENROUTER_API_KEY) {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: OPENROUTER_MODEL,
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 120,
+          temperature: 0.9,
+        }),
+      });
+
+      const responseData = await response.json();
+      if (response.ok && responseData.choices && responseData.choices.length > 0) {
+        return clean(String(responseData.choices[0].message.content || ''));
+      } else {
+        console.error('OpenRouter API error:', responseData);
+      }
     } else {
-      console.error('OpenRouter API error:', responseData);
-      return `Avertizare vânt: ${data.windSpeed} km/h în ${data.location}. Depășește pragul de ${data.userThreshold} km/h. Fii precaut!`;
+      console.warn('OPENROUTER_API_KEY missing, skipping OpenRouter');
     }
   } catch (error) {
     console.error('Error calling OpenRouter API:', error);
-    return `Avertizare vânt: ${data.windSpeed} km/h în ${data.location}. Depășește pragul de ${data.userThreshold} km/h. Fii precaut!`;
   }
+
+  // 2) Fallback: Google Gemini 2.5 Flash (dacă există cheia)
+  try {
+    const GEMINI_API_KEY = process.env.GOOGLE_AI_API_KEY;
+    if (GEMINI_API_KEY) {
+      const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }]}]
+        })
+      });
+      const geminiData = await geminiRes.json();
+      if (geminiRes.ok) {
+        const txt = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        if (txt) return clean(String(txt));
+      } else {
+        console.error('Gemini API error:', geminiData);
+      }
+    } else {
+      console.warn('GOOGLE_AI_API_KEY missing, skipping Gemini fallback');
+    }
+  } catch (e) {
+    console.error('Error calling Gemini API:', e);
+  }
+
+  // 3) Fallback final static
+  return `Avertizare vânt: ${data.windSpeed} km/h în ${data.location}. Depășește pragul de ${data.userThreshold} km/h. Fii precaut!`;
 }
 
 // Template-uri pentru mesaje
