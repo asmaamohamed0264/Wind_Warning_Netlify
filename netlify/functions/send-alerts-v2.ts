@@ -7,7 +7,7 @@ const APP_ID =
   process.env.VITE_ONESIGNAL_APP_ID ||
   process.env.ONESIGNAL_APP_ID;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const OPENROUTER_MODEL = 'mistralai/mistral-7b-instruct:free'; // Mistral funcționează stabil
+const OPENROUTER_MODEL = 'deepseek/deepseek-chat-v3.1:free'; // DeepSeek v3.1 free, excelent pentru română
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN ?? '*';
 
 function corsHeaders(origin: string) {
