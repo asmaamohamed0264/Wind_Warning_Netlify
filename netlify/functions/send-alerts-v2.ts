@@ -721,14 +721,13 @@ export const handler: Handler = async (event) => {
         },
         body: JSON.stringify({
           app_id: APP_ID,
-          // Revert la modul simplu - folosește ALL users ca înainte
-          included_segments: ['All'],
+          // HOTFIX: Trimite doar către subscriber-ii email specifici, nu la toți!
+          include_player_ids: ['email_specific_user_id'], // Va fi înlocuit cu ID-ul real
           headings: { en: 'Alertă Vânt Personalizată' },
           contents: { en: aiMessage },
-          // Email specific fields ca înainte
+          // Email specific fields
           email_subject: `Alertă Vânt: ${windData.windSpeed} km/h - ${windData.location}`,
           email_body: emailTemplate,
-          // Specific email targeting
           send_after: new Date().toISOString()
         }),
       });
