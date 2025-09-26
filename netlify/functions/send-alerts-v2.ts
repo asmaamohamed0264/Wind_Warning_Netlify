@@ -12,8 +12,8 @@ const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN ?? '*';
 
 // Rate limiting - memorie în timpul execuției
 const recentRequests = new Map<string, number>();
-const RATE_LIMIT_WINDOW = 30000; // 30 secunde
-const MAX_REQUESTS_PER_WINDOW = 3; // Max 3 request-uri per 30 secunde
+const RATE_LIMIT_WINDOW = 60000; // 60 secunde (1 minut)
+const MAX_REQUESTS_PER_WINDOW = 10; // Max 10 request-uri per minut (mai relaxat)
 
 function corsHeaders(origin: string) {
   return {
