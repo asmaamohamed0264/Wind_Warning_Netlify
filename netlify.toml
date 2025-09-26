@@ -14,10 +14,22 @@
 
 # --- Redirects ---
 
-# (specific) endpoint-ul nou pentru push manual / meteo - UPDATED pentru AI complet
+# (specific) endpoint pentru check și send alerts automatizat
 [[redirects]]
-  from   = "/api/send-alerts"
-  to     = "/.netlify/functions/send-alerts-v2"
+  from   = "/api/check-alerts"
+  to     = "/.netlify/functions/check-and-send-alerts"
+  status = 200
+
+# (specific) endpoint pentru get weather data
+[[redirects]]
+  from   = "/api/weather"
+  to     = "/.netlify/functions/get-weather"
+  status = 200
+
+# (specific) endpoint pentru subscribe notifications
+[[redirects]]
+  from   = "/api/subscribe"
+  to     = "/.netlify/functions/subscribe-notifications"
   status = 200
 
 # (generic) proxy /api/* spre functions
@@ -26,11 +38,6 @@
   to     = "/.netlify/functions/:splat"
   status = 200
 
-# (specific) endpoint pentru date meteo compilate
-[[redirects]]
-  from   = "/api/weather-compiled"
-  to     = "/.netlify/functions/weather-compiled"
-  status = 200
 
 # --- Headers ---
 
