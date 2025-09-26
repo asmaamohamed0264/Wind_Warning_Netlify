@@ -10,6 +10,11 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_MODEL = 'deepseek/deepseek-chat-v3.1:free'; // DeepSeek v3.1 free, excelent pentru română
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN ?? '*';
 
+// Rate limiting - memorie în timpul execuției
+const recentRequests = new Map<string, number>();
+const RATE_LIMIT_WINDOW = 30000; // 30 secunde
+const MAX_REQUESTS_PER_WINDOW = 3; // Max 3 request-uri per 30 secunde
+
 function corsHeaders(origin: string) {
   return {
     'access-control-allow-origin': origin,
@@ -578,6 +583,47 @@ export const handler: Handler = async (event) => {
       hasUserThreshold: !!body.userThreshold
     });
 
+    // Rate Limiting Check pentru a preveni spam-ul
+    const clientIp = event.headers['x-forwarded-for'] || event.headers['client-ip'] || 'unknown';
+    const requestKey = `${clientIp}_${JSON.stringify({ws: body.windSpeed, loc: body.location?.substring(0,10)})}`;
+    const now = Date.now();
+    
+    // Curăță request-urile vechi
+    for (const [key, timestamp] of recentRequests.entries()) {
+      if (now - timestamp > RATE_LIMIT_WINDOW) {
+        recentRequests.delete(key);
+      }
+    }
+    
+    // Verifică rate limit
+    const recentCount = Array.from(recentRequests.entries())
+      .filter(([key]) => key.startsWith(clientIp))
+      .length;
+    
+    if (recentCount >= MAX_REQUESTS_PER_WINDOW) {
+      console.log(`🚫 Rate limited: ${clientIp} (${recentCount} requests in ${RATE_LIMIT_WINDOW}ms)`);
+      return {
+        statusCode: 429,
+        headers: { 
+          'content-type': 'application/json; charset=utf-8', 
+          ...corsHeaders(ALLOWED_ORIGIN),
+          'Retry-After': '30'
+        },
+        body: JSON.stringify({ 
+          ok: false, 
+          error: 'Too many requests. Please wait 30 seconds.',
+          rateLimitInfo: {
+            requests: recentCount,
+            windowMs: RATE_LIMIT_WINDOW,
+            retryAfter: 30
+          }
+        })
+      };
+    }
+    
+    // Înregistrează request-ul
+    recentRequests.set(requestKey, now);
+
     // Mod 1: Alerte personalizate cu AI pentru date meteo
     if (body.windSpeed !== undefined && body.location && body.userThreshold) {
       console.log('🎯 AI Mode triggered with data:', body);
@@ -721,8 +767,8 @@ export const handler: Handler = async (event) => {
         },
         body: JSON.stringify({
           app_id: APP_ID,
-          // HOTFIX: Trimite doar către subscriber-ii email specifici, nu la toți!
-          include_player_ids: ['email_specific_user_id'], // Va fi înlocuit cu ID-ul real
+          // Trimite către toți utilizatorii care au email configurat
+          included_segments: ['All']
           headings: { en: 'Alertă Vânt Personalizată' },
           contents: { en: aiMessage },
           // Email specific fields
