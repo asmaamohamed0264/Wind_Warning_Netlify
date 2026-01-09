@@ -9,10 +9,8 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || 'https://wind.qub3.uk',
   },
-  // Ensure API routes are included in build
-  experimental: {
-    // This ensures API routes work correctly
-  },
+  // Ensure API routes work in production
+  // Next.js 13.5.1 App Router requires server mode for API routes
 };
 
 // #region agent log
