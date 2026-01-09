@@ -111,10 +111,9 @@ export function isUrbanAdjustmentEnabled(): boolean {
  */
 export function getUrbanReductionFactor(
   density: UrbanDensity,
-  useConservative: boolean = true
+  _useConservative: boolean = true
 ): number {
-  const factor = URBAN_REDUCTION_FACTORS[density];
-  return useConservative ? factor.max : factor.min;
+  return URBAN_REDUCTION_FACTORS[density];
 }
 
 /**
