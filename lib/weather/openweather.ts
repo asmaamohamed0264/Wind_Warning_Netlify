@@ -95,9 +95,13 @@ export async function fetchOpenWeatherData(apiKey: string): Promise<{
   const rawWindSpeed = currentData.wind.speed * 3.6; // m/s to km/h
   const rawWindGust = currentData.wind.gust ? currentData.wind.gust * 3.6 : currentData.wind.speed * 3.6;
   
-  // Urban adjustment for Popești-Leordeni / București Sud (suburban area)
-  // Factor 0.6 reduces 10m values to ground level (~60% of 10m values)
+  // Urban adjustment for Popești-Leordeni / București Sud (urban area for more realistic values)
+  // Factor 0.4 reduces 10m values to ground level (~40% of 10m values)
   const urbanAdjustmentEnabled = isUrbanAdjustmentEnabled();
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7246/ingest/c6551201-626b-4f04-992d-9b144886a04c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/weather/openweather.ts:95',message:'Wind speed values',data:{rawSpeed:rawWindSpeed,rawGust:rawWindGust,adjustedSpeed:urbanAdjustmentEnabled ? adjustWindForUrban(rawWindSpeed, 'urban') : rawWindSpeed,adjustedGust:urbanAdjustmentEnabled ? adjustWindGustForUrban(rawWindGust, 'urban') : rawWindGust},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H6'})}).catch(()=>{});
+  // #endregion
   
   const current: WeatherData = {
     timestamp: new Date().toISOString(),
@@ -105,8 +109,8 @@ export async function fetchOpenWeatherData(apiKey: string): Promise<{
     humidity: currentData.main.humidity,
     pressure: currentData.main.pressure,
     visibility: currentData.visibility,
-    windSpeed: urbanAdjustmentEnabled ? adjustWindForUrban(rawWindSpeed, 'suburban') : rawWindSpeed,
-    windGust: urbanAdjustmentEnabled ? adjustWindGustForUrban(rawWindGust, 'suburban') : rawWindGust,
+    windSpeed: urbanAdjustmentEnabled ? adjustWindForUrban(rawWindSpeed, 'urban') : rawWindSpeed,
+    windGust: urbanAdjustmentEnabled ? adjustWindGustForUrban(rawWindGust, 'urban') : rawWindGust,
     windDirection: currentData.wind.deg || 0,
     description: currentData.weather[0].description,
     icon: currentData.weather[0].icon,
@@ -121,8 +125,8 @@ export async function fetchOpenWeatherData(apiKey: string): Promise<{
     return {
       time: item.dt_txt,
       temperature: item.main.temp,
-      windSpeed: urbanAdjustmentEnabled ? adjustWindForUrban(rawSpeed, 'suburban') : rawSpeed,
-      windGust: urbanAdjustmentEnabled ? adjustWindGustForUrban(rawGust, 'suburban') : rawGust,
+      windSpeed: urbanAdjustmentEnabled ? adjustWindForUrban(rawSpeed, 'urban') : rawSpeed,
+      windGust: urbanAdjustmentEnabled ? adjustWindGustForUrban(rawGust, 'urban') : rawGust,
       windDirection: item.wind.deg || 0,
       description: item.weather[0].description,
       icon: item.weather[0].icon,

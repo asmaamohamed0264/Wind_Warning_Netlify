@@ -40,11 +40,11 @@ const URBAN_REDUCTION_FACTORS: Record<UrbanDensity, number> = {
  * Configurație pentru Aleea Someșul Cald, București (Popești-Leordeni / București Sud)
  * 
  * Zonă semi-deschisă, mai puțin densă decât centrul București
- * → Clasificare: Suburban (ajustare pentru valori la nivel pietonal)
+ * → Clasificare: Urban (ajustare mai agresivă pentru valori realiste la nivel pietonal)
  * 
- * Factor 0.6 reduce valorile de la 10m la nivel pietonal aproximativ
+ * Factor 0.4 reduce valorile de la 10m la nivel pietonal (~40% din valorile la 10m)
  */
-export const BUCHAREST_SOMESUL_CALD_DENSITY: UrbanDensity = 'suburban';
+export const BUCHAREST_SOMESUL_CALD_DENSITY: UrbanDensity = 'urban';
 
 /**
  * Ajustează viteza vântului pentru context urban
