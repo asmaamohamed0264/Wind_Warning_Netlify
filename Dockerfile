@@ -33,8 +33,14 @@ RUN adduser --system --uid 1001 nextjs
 
 # Copiere fișiere build
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+
+# Set correct permissions for prerender cache
+RUN mkdir -p .next
+RUN chown nextjs:nodejs .next
+
+# Copy next build
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 

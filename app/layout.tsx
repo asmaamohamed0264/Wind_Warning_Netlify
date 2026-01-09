@@ -10,7 +10,12 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://lore.qub3.uk'),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || 
+    process.env.URL || 
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
+    'https://lore.qub3.uk'
+  ),
   title: 'Monitor Vânt Aleea Someșul Cald - Protecție împotriva vânturilor periculoase',
   description:
     'Sistem proactiv de monitorizare și alertă timpurie pentru vânturi pe Aleea Someșul Cald. Primește alerte în timp real pentru condiții meteorologice periculoase prin notificări browser și SMS.',
