@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { WeatherData, ForecastData } from '@/types/weather';
 import { AlertLevel } from '@/types/alerts';
@@ -14,7 +15,7 @@ interface WeatherDashboardProps {
   threshold?: number;
 }
 
-export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }: WeatherDashboardProps) {
+export const WeatherDashboard = memo(function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }: WeatherDashboardProps) {
   const getAlertColor = (level: AlertLevel) => {
     switch (level) {
       case 'danger': return 'border-red-500 bg-red-500/10';
@@ -37,11 +38,19 @@ export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }:
   };
 
   const getWindDescription = (speed: number) => {
-    if (speed < 20) return 'Briză ușoară';
-    if (speed < 40) return 'Vânt moderat';
-    if (speed < 60) return 'Vânt puternic';
-    if (speed < 80) return 'Vânt foarte puternic';
-    return 'Vânt periculos';
+    // Beaufort Scale - adapted for Romanian
+    // More precise for low wind speeds (important for alerts)
+    if (speed < 2) return 'Calm';
+    if (speed < 6) return 'Aer ușor';
+    if (speed < 12) return 'Briză ușoară';      // Beaufort 3
+    if (speed < 20) return 'Briză slabă';       // Beaufort 4
+    if (speed < 29) return 'Briză moderată';    // Beaufort 5
+    if (speed < 39) return 'Briză vie';         // Beaufort 6
+    if (speed < 50) return 'Vânt moderat';      // Beaufort 7
+    if (speed < 62) return 'Vânt tare';         // Beaufort 8
+    if (speed < 75) return 'Vânt foarte tare';  // Beaufort 9
+    if (speed < 89) return 'Furtună';           // Beaufort 10
+    return 'Furtună violentă';                  // Beaufort 11+
   };
 
   return (
@@ -90,6 +99,8 @@ export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }:
                 <Navigation 
                   className="h-10 w-10 text-green-400 transition-transform duration-500" 
                   style={{ transform: `rotate(${data.windDirection}deg)` }}
+                  aria-label={`Direcție vânt: ${getWindDirection(data.windDirection)} la ${data.windDirection} grade`}
+                  role="img"
                 />
               </div>
               <div className="text-2xl font-semibold text-green-400 mb-1">
@@ -157,4 +168,12 @@ export function WeatherDashboard({ data, alertLevel, forecast, threshold = 50 }:
       </Card>
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison pentru shallow equality
+  return (
+    prevProps.data.timestamp === nextProps.data.timestamp &&
+    prevProps.alertLevel === nextProps.alertLevel &&
+    prevProps.threshold === nextProps.threshold &&
+    prevProps.forecast.length === nextProps.forecast.length
+  );
+});

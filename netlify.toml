@@ -29,11 +29,16 @@
     X-Content-Type-Options = "nosniff"
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.onesignal.com https://onesignal.com; connect-src 'self' https://api.openweathermap.org https://onesignal.com https://*.onesignal.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src 'self' https://onesignal.com; worker-src 'self' blob:;"
 
-# Headere pentru API (CORS)
+# Headere pentru API (CORS) - production ar trebui să limiteze la domeniul specific
 [[headers]]
   for = "/api/*"
   [headers.values]
-    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Origin = "https://wind.qub3.uk"
     Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"
-    Access-Control-Allow-Methods = "GET, POST, DELETE, OPTIONS"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Max-Age = "86400"
+    Access-Control-Allow-Credentials = "false"

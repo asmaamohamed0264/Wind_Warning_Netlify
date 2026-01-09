@@ -1,0 +1,29 @@
+{
+  "name": "Monitor Vânt Aleea Someșul Cald",
+  "short_name": "Wind Monitor",
+  "description": "Sistem proactiv de monitorizare și alertă timpurie pentru vânturi pe Aleea Someșul Cald",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#1f2937",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/1000088934-modified.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/1000088934-modified.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["weather", "utilities", "productivity"],
+  "lang": "ro-RO",
+  "dir": "ltr",
+  "scope": "/",
+  "prefer_related_applications": false
+}

@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertLevel } from '@/types/alerts';
 import { AlertTriangle, Wind, Clock, Shield } from 'lucide-react';
@@ -15,7 +16,7 @@ interface AlertPanelProps {
   alert: Alert;
 }
 
-export function AlertPanel({ alert }: AlertPanelProps) {
+export const AlertPanel = memo(function AlertPanel({ alert }: AlertPanelProps) {
   const getAlertStyles = (level: AlertLevel) => {
     switch (level) {
       case 'danger':
@@ -163,4 +164,4 @@ export function AlertPanel({ alert }: AlertPanelProps) {
       </CardContent>
     </Card>
   );
-}
+});

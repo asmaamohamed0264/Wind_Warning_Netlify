@@ -1,5 +1,8 @@
-// lib/onesignal.ts
-// Wrapper sigur pentru OneSignal Web SDK v16, compatibil cu Next/Netlify (SSR)
+/**
+ * @fileoverview OneSignal SDK wrapper pentru Wind Warning App
+ * @module lib/onesignal
+ * @description Wrapper sigur pentru OneSignal Web SDK v16, compatibil cu Next/Netlify (SSR)
+ */
 
 declare global {
   interface Window {
@@ -34,15 +37,31 @@ async function waitForSDKReady(timeoutMs = 8000) {
   });
 }
 
+/**
+ * OneSignal service wrapper
+ * @namespace oneSignal
+ */
 export const oneSignal = {
-  // Inițializare – chemată o singură dată în app
+  /**
+   * Inițializează OneSignal SDK
+   * Trebuie apelată o singură dată la montarea aplicației
+   * @returns {Promise<void>}
+   * @example
+   * await oneSignal.initialize();
+   */
   async initialize() {
     if (!isClient()) return;
     // Dacă SDK-ul e deja injectat, e okay. Dacă nu, așteptăm OneSignalDeferred.
     await waitForSDKReady().catch(() => {}); // nu blocăm UI-ul
   },
 
-  // Push subscribe/unsubscribe
+  /**
+   * Verifică dacă utilizatorul este abonat la notificări push
+   * @returns {Promise<boolean>} True dacă utilizatorul este abonat
+   * @example
+   * const subscribed = await oneSignal.isSubscribed();
+   * if (subscribed) console.log('User is subscribed');
+   */
   async isSubscribed(): Promise<boolean> {
     try {
       await waitForSDKReady();

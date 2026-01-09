@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "onesignal": {
+      "command": "npx",
+      "args": ["-y", "@weirdbrains/onesignal-mcp"],
+      "env": {
+        "ONESIGNAL_REST_API_KEY": "os_v2_app_4stt4ncdcvapzeoi2ngafgq7d23s4zn5xueezjnbr7eabrd5hl7smoukszo3mgmfljdwe4xds4cde6jp67qbniogm6nhrkfvl2ahj7a",
+        "ONESIGNAL_APP_ID": "e4a73e34-4315-40fc-91c8-d34c029a1f1e"
+      }
+    }
+  }
+}

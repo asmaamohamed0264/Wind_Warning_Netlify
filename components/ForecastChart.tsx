@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { ForecastData } from '@/types/weather';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine } from 'recharts';
 
@@ -8,7 +9,7 @@ interface ForecastChartProps {
   threshold?: number;
 }
 
-export function ForecastChart({ data, threshold = 50 }: ForecastChartProps) {
+export const ForecastChart = memo(function ForecastChart({ data, threshold = 50 }: ForecastChartProps) {
   // Safety check for data
   if (!data || !Array.isArray(data) || data.length === 0) {
     return (
@@ -18,17 +19,22 @@ export function ForecastChart({ data, threshold = 50 }: ForecastChartProps) {
     );
   }
 
-  const chartData = data.map((forecast, index) => {
-    const time = new Date(forecast.time);
-    const hour = time.getHours();
-    const isNow = index === 0;
+  const chartData = data.map((forecast) => {
+    const forecastTime = new Date(forecast.time);
+    const now = new Date();
+    const hour = forecastTime.getHours();
+    
+    // Check if forecast is actually for current time (within 30 minutes)
+    // This prevents showing "Acum" for future forecasts when index=0
+    const diffMinutes = Math.abs(forecastTime.getTime() - now.getTime()) / 60000;
+    const isNow = diffMinutes < 30;
     
     return {
-      time: isNow ? 'Now' : `${hour.toString().padStart(2, '0')}:00`,
+      time: isNow ? 'Acum' : `${hour.toString().padStart(2, '0')}:00`,
       windSpeed: Math.round(forecast.windSpeed),
       windGust: Math.round(forecast.windGust),
       maxWind: Math.max(Math.round(forecast.windSpeed), Math.round(forecast.windGust)),
-      hour: isNow ? -1 : hour, // Use -1 for "Now" to sort it first
+      hour: hour,
     };
   });
 
@@ -153,4 +159,4 @@ export function ForecastChart({ data, threshold = 50 }: ForecastChartProps) {
       </div>
     </div>
   );
-}
+});
