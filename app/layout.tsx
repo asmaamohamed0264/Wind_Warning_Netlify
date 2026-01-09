@@ -4,10 +4,13 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Script from 'next/script';
 import OneSignalInit from '@/components/OneSignalInit';
+import { WeatherProvider } from '@/lib/context/WeatherContext';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://lore.qub3.uk'),
   title: 'Monitor Vânt Aleea Someșul Cald - Protecție împotriva vânturilor periculoase',
   description:
     'Sistem proactiv de monitorizare și alertă timpurie pentru vânturi pe Aleea Someșul Cald. Primește alerte în timp real pentru condiții meteorologice periculoase prin notificări browser și SMS.',
@@ -24,6 +27,7 @@ export const metadata: Metadata = {
     locale: 'ro_RO',
   },
   robots: { index: true, follow: true },
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -48,17 +52,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Script id="onesignal-queue" strategy="afterInteractive">
           {`window.OneSignalDeferred = window.OneSignalDeferred || [];`}
         </Script>
-      </head>
-      <body className={`${inter.className} bg-gray-900 text-white antialiased`}>
-        {/* Montează inițializarea OneSignal */}
-        <OneSignalInit />
-
-        {children}
 
         {/* Iconițe */}
         <link rel="icon" href="/1000088934-modified.png" />
         <link rel="apple-touch-icon" href="/1000088934-modified.png" />
         <link rel="shortcut icon" href="/1000088934-modified.png" />
+      </head>
+      <body className={`${inter.className} bg-gray-900 text-white antialiased`}>
+        <ErrorBoundary>
+          <WeatherProvider>
+            {/* Montează inițializarea OneSignal */}
+            <OneSignalInit />
+
+            {children}
+          </WeatherProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );
