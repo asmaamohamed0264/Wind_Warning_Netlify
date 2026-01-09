@@ -3,7 +3,14 @@ import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
   // #region agent log
-  fetch('http://127.0.0.1:7246/ingest/c6551201-626b-4f04-992d-9b144886a04c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'middleware.ts:6',message:'Request intercepted',data:{path:request.nextUrl.pathname,method:request.method,url:request.url},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{});
+  // Log to console for now (middleware runs on edge, file I/O not available)
+  console.log('[MIDDLEWARE]', {
+    path: request.nextUrl.pathname,
+    method: request.method,
+    url: request.url,
+    timestamp: Date.now(),
+    hypothesisId: 'H4'
+  });
   // #endregion
   
   return NextResponse.next();

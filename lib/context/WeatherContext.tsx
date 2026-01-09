@@ -165,9 +165,18 @@ export function WeatherProvider({ children }: WeatherProviderProps) {
 
     try {
       dispatch({ type: 'CLEAR_ERROR' });
+      // #region agent log
+      fetch('http://127.0.0.1:7246/ingest/c6551201-626b-4f04-992d-9b144886a04c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/context/WeatherContext.tsx:168',message:'Fetching weather API',data:{url:'/api/weather',timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+      // #endregion
       const response = await fetch('/api/weather');
+      // #region agent log
+      fetch('http://127.0.0.1:7246/ingest/c6551201-626b-4f04-992d-9b144886a04c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/context/WeatherContext.tsx:170',message:'Weather API response',data:{status:response.status,statusText:response.statusText,ok:response.ok,url:response.url},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+      // #endregion
 
       if (!response.ok) {
+        // #region agent log
+        fetch('http://127.0.0.1:7246/ingest/c6551201-626b-4f04-992d-9b144886a04c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/context/WeatherContext.tsx:171',message:'Weather API error response',data:{status:response.status,statusText:response.statusText},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{});
+        // #endregion
         throw new Error(`Weather service error: ${response.status}`);
       }
 
