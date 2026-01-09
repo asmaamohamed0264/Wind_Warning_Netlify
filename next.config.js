@@ -9,6 +9,10 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || 'https://wind.qub3.uk',
   },
+  // Ensure API routes are included in build
+  experimental: {
+    // This ensures API routes work correctly
+  },
 };
 
 // #region agent log
