@@ -11,6 +11,7 @@
  */
 
 import { WeatherData, ForecastData } from '@/types/weather';
+import { adjustWindForUrban, adjustWindGustForUrban, isUrbanAdjustmentEnabled } from './wind-adjustment';
 
 const OPEN_METEO_BASE_URL = 'https://api.open-meteo.com/v1/forecast';
 
@@ -144,14 +145,20 @@ export async function fetchOpenMeteoWeather(): Promise<{
   const isDay = currentHour >= 6 && currentHour < 20;
 
   // Transform current weather
+  const rawWindSpeed = data.current.wind_speed_10m * 3.6; // Convert m/s to km/h
+  const rawWindGust = data.current.wind_gusts_10m * 3.6; // Convert m/s to km/h
+  
+  // Apply urban adjustment for ground-level values (suburban factor 0.6)
+  const urbanAdjustmentEnabled = isUrbanAdjustmentEnabled();
+  
   const current: WeatherData = {
     timestamp: data.current.time,
     temperature: data.current.temperature_2m,
     humidity: data.current.relative_humidity_2m,
     pressure: data.current.pressure_msl,
     visibility: 10000, // Open-Meteo doesn't provide visibility, use default
-    windSpeed: data.current.wind_speed_10m * 3.6, // Convert m/s to km/h
-    windGust: data.current.wind_gusts_10m * 3.6, // Convert m/s to km/h
+    windSpeed: urbanAdjustmentEnabled ? adjustWindForUrban(rawWindSpeed, 'suburban') : rawWindSpeed,
+    windGust: urbanAdjustmentEnabled ? adjustWindGustForUrban(rawWindGust, 'suburban') : rawWindGust,
     windDirection: data.current.wind_direction_10m,
     description: getWeatherDescription(data.hourly.weather_code[0]),
     icon: getWeatherIcon(data.hourly.weather_code[0], isDay),
@@ -163,11 +170,14 @@ export async function fetchOpenMeteoWeather(): Promise<{
     const forecastHour = new Date(data.hourly.time[i]).getHours();
     const isForecastDay = forecastHour >= 6 && forecastHour < 20;
     
+    const rawForecastSpeed = data.hourly.wind_speed_10m[i] * 3.6; // Convert m/s to km/h
+    const rawForecastGust = data.hourly.wind_gusts_10m[i] * 3.6; // Convert m/s to km/h
+    
     forecast.push({
       time: data.hourly.time[i],
       temperature: data.hourly.temperature_2m[i],
-      windSpeed: data.hourly.wind_speed_10m[i] * 3.6, // Convert m/s to km/h
-      windGust: data.hourly.wind_gusts_10m[i] * 3.6, // Convert m/s to km/h
+      windSpeed: urbanAdjustmentEnabled ? adjustWindForUrban(rawForecastSpeed, 'suburban') : rawForecastSpeed,
+      windGust: urbanAdjustmentEnabled ? adjustWindGustForUrban(rawForecastGust, 'suburban') : rawForecastGust,
       windDirection: data.hourly.wind_direction_10m[i],
       description: getWeatherDescription(data.hourly.weather_code[i]),
       icon: getWeatherIcon(data.hourly.weather_code[i], isForecastDay),

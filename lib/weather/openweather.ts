@@ -95,8 +95,8 @@ export async function fetchOpenWeatherData(apiKey: string): Promise<{
   const rawWindSpeed = currentData.wind.speed * 3.6; // m/s to km/h
   const rawWindGust = currentData.wind.gust ? currentData.wind.gust * 3.6 : currentData.wind.speed * 3.6;
   
-  // NO urban adjustment for Popești-Leordeni / București Sud (open area)
-  // Factor 1.0 = RAW API data (validated with TypeWeather: ~11 km/h)
+  // Urban adjustment for Popești-Leordeni / București Sud (suburban area)
+  // Factor 0.6 reduces 10m values to ground level (~60% of 10m values)
   const urbanAdjustmentEnabled = isUrbanAdjustmentEnabled();
   
   const current: WeatherData = {
@@ -105,8 +105,8 @@ export async function fetchOpenWeatherData(apiKey: string): Promise<{
     humidity: currentData.main.humidity,
     pressure: currentData.main.pressure,
     visibility: currentData.visibility,
-    windSpeed: urbanAdjustmentEnabled ? adjustWindForUrban(rawWindSpeed, 'open') : rawWindSpeed,
-    windGust: urbanAdjustmentEnabled ? adjustWindGustForUrban(rawWindGust, 'open') : rawWindGust,
+    windSpeed: urbanAdjustmentEnabled ? adjustWindForUrban(rawWindSpeed, 'suburban') : rawWindSpeed,
+    windGust: urbanAdjustmentEnabled ? adjustWindGustForUrban(rawWindGust, 'suburban') : rawWindGust,
     windDirection: currentData.wind.deg || 0,
     description: currentData.weather[0].description,
     icon: currentData.weather[0].icon,
@@ -121,8 +121,8 @@ export async function fetchOpenWeatherData(apiKey: string): Promise<{
     return {
       time: item.dt_txt,
       temperature: item.main.temp,
-      windSpeed: urbanAdjustmentEnabled ? adjustWindForUrban(rawSpeed, 'open') : rawSpeed,
-      windGust: urbanAdjustmentEnabled ? adjustWindGustForUrban(rawGust, 'open') : rawGust,
+      windSpeed: urbanAdjustmentEnabled ? adjustWindForUrban(rawSpeed, 'suburban') : rawSpeed,
+      windGust: urbanAdjustmentEnabled ? adjustWindGustForUrban(rawGust, 'suburban') : rawGust,
       windDirection: item.wind.deg || 0,
       description: item.weather[0].description,
       icon: item.weather[0].icon,

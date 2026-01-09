@@ -30,21 +30,21 @@ export type UrbanDensity = 'open' | 'suburban' | 'urban' | 'dense-urban';
  * folosim factor 1.0 = date RAW de la API (confirmat cu TypeWeather)
  */
 const URBAN_REDUCTION_FACTORS: Record<UrbanDensity, number> = {
-  'open': 1.0,        // NO adjustment - RAW API data
-  'suburban': 0.6,
-  'urban': 0.4,
-  'dense-urban': 0.1,
+  'open': 0.7,        // Reduced from 1.0 - values at ground level are ~70% of 10m values
+  'suburban': 0.6,    // Scattered buildings, trees
+  'urban': 0.4,       // Dense buildings, narrow streets
+  'dense-urban': 0.1, // Extremely protected areas
 };
 
 /**
  * Configurație pentru Aleea Someșul Cald, București (Popești-Leordeni / București Sud)
  * 
  * Zonă semi-deschisă, mai puțin densă decât centrul București
- * → Clasificare: Open (fără ajustare - date RAW de la API)
+ * → Clasificare: Suburban (ajustare pentru valori la nivel pietonal)
  * 
- * Validat cu TypeWeather: 11 km/h (factor 1.0)
+ * Factor 0.6 reduce valorile de la 10m la nivel pietonal aproximativ
  */
-export const BUCHAREST_SOMESUL_CALD_DENSITY: UrbanDensity = 'open';
+export const BUCHAREST_SOMESUL_CALD_DENSITY: UrbanDensity = 'suburban';
 
 /**
  * Ajustează viteza vântului pentru context urban
