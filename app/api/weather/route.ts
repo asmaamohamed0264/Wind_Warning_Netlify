@@ -14,9 +14,15 @@ let cacheTime = 0;
 let cacheProvider: 'open-meteo' | 'openweather' | null = null;
 
 export async function GET() {
+  // #region agent log
+  fetch('http://127.0.0.1:7246/ingest/c6551201-626b-4f04-992d-9b144886a04c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/weather/route.ts:16',message:'Weather API GET called',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+  // #endregion
   try {
     // Serve from cache if fresh
     const now = Date.now();
+    // #region agent log
+    fetch('http://127.0.0.1:7246/ingest/c6551201-626b-4f04-992d-9b144886a04c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/weather/route.ts:20',message:'Cache check',data:{cacheExists:!!cacheBody,cacheTTL:CACHE_TTL_MS,cacheAge:cacheBody ? now - cacheTime : null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+    // #endregion
     if (cacheBody && (now - cacheTime) < CACHE_TTL_MS) {
       return NextResponse.json(cacheBody, {
         headers: { 
@@ -126,6 +132,9 @@ export async function GET() {
     cacheTime = now;
     cacheProvider = provider;
 
+    // #region agent log
+    fetch('http://127.0.0.1:7246/ingest/c6551201-626b-4f04-992d-9b144886a04c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/weather/route.ts:129',message:'Returning successful response',data:{provider:provider,forecastCount:parsedForecast.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+    // #endregion
     return NextResponse.json(responseData, {
       headers: {
         'X-Cache': 'MISS',
@@ -134,6 +143,9 @@ export async function GET() {
       }
     });
   } catch (error) {
+    // #region agent log
+    fetch('http://127.0.0.1:7246/ingest/c6551201-626b-4f04-992d-9b144886a04c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/weather/route.ts:137',message:'Weather API error',data:{error:error instanceof Error ? error.message : 'Unknown',stack:error instanceof Error ? error.stack : null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{});
+    // #endregion
     console.error('❌ Error fetching weather data:', error);
     
     // Return detailed error information
