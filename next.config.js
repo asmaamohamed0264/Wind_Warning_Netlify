@@ -1,10 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
+  // Standalone output for Docker deployment
+  output: 'standalone',
   eslint: {
     ignoreDuringBuilds: true,
   },
-  images: { unoptimized: true },
 };
 
 module.exports = nextConfig;
