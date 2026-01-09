@@ -96,11 +96,20 @@ export async function fetchOpenWeatherData(apiKey: string): Promise<{
   const rawWindGust = currentData.wind.gust ? currentData.wind.gust * 3.6 : currentData.wind.speed * 3.6;
   
   // Urban adjustment for Popești-Leordeni / București Sud (urban area for more realistic values)
-  // Factor 0.4 reduces 10m values to ground level (~40% of 10m values)
+  // Factor 0.3 reduces 10m values to ground level (~30% of 10m values)
   const urbanAdjustmentEnabled = isUrbanAdjustmentEnabled();
   
+  const adjustedSpeed = urbanAdjustmentEnabled ? adjustWindForUrban(rawWindSpeed, 'urban') : rawWindSpeed;
+  const adjustedGust = urbanAdjustmentEnabled ? adjustWindGustForUrban(rawWindGust, 'urban') : rawWindGust;
+  
   // #region agent log
-  fetch('http://127.0.0.1:7246/ingest/c6551201-626b-4f04-992d-9b144886a04c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/weather/openweather.ts:95',message:'Wind speed values',data:{rawSpeed:rawWindSpeed,rawGust:rawWindGust,adjustedSpeed:urbanAdjustmentEnabled ? adjustWindForUrban(rawWindSpeed, 'urban') : rawWindSpeed,adjustedGust:urbanAdjustmentEnabled ? adjustWindGustForUrban(rawWindGust, 'urban') : rawWindGust},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H6'})}).catch(()=>{});
+  console.log('[OpenWeather] Wind values:', {
+    rawSpeed: rawWindSpeed.toFixed(1),
+    rawGust: rawWindGust.toFixed(1),
+    adjustedSpeed: adjustedSpeed.toFixed(1),
+    adjustedGust: adjustedGust.toFixed(1),
+    factor: '0.3 (urban)'
+  });
   // #endregion
   
   const current: WeatherData = {
@@ -109,8 +118,8 @@ export async function fetchOpenWeatherData(apiKey: string): Promise<{
     humidity: currentData.main.humidity,
     pressure: currentData.main.pressure,
     visibility: currentData.visibility,
-    windSpeed: urbanAdjustmentEnabled ? adjustWindForUrban(rawWindSpeed, 'urban') : rawWindSpeed,
-    windGust: urbanAdjustmentEnabled ? adjustWindGustForUrban(rawWindGust, 'urban') : rawWindGust,
+    windSpeed: adjustedSpeed,
+    windGust: adjustedGust,
     windDirection: currentData.wind.deg || 0,
     description: currentData.weather[0].description,
     icon: currentData.weather[0].icon,

@@ -30,9 +30,9 @@ export type UrbanDensity = 'open' | 'suburban' | 'urban' | 'dense-urban';
  * folosim factor 1.0 = date RAW de la API (confirmat cu TypeWeather)
  */
 const URBAN_REDUCTION_FACTORS: Record<UrbanDensity, number> = {
-  'open': 0.7,        // Reduced from 1.0 - values at ground level are ~70% of 10m values
-  'suburban': 0.6,    // Scattered buildings, trees
-  'urban': 0.4,       // Dense buildings, narrow streets
+  'open': 0.5,        // Reduced - values at ground level are ~50% of 10m values
+  'suburban': 0.4,    // Scattered buildings, trees - reduced from 0.6
+  'urban': 0.3,       // Dense buildings, narrow streets - reduced from 0.4
   'dense-urban': 0.1, // Extremely protected areas
 };
 

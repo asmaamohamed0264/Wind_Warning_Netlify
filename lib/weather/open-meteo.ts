@@ -148,11 +148,20 @@ export async function fetchOpenMeteoWeather(): Promise<{
   const rawWindSpeed = data.current.wind_speed_10m * 3.6; // Convert m/s to km/h
   const rawWindGust = data.current.wind_gusts_10m * 3.6; // Convert m/s to km/h
   
-  // Apply urban adjustment for ground-level values (urban factor 0.4 for more realistic values)
+  // Apply urban adjustment for ground-level values (urban factor 0.3 for more realistic values)
   const urbanAdjustmentEnabled = isUrbanAdjustmentEnabled();
   
+  const adjustedSpeed = urbanAdjustmentEnabled ? adjustWindForUrban(rawWindSpeed, 'urban') : rawWindSpeed;
+  const adjustedGust = urbanAdjustmentEnabled ? adjustWindGustForUrban(rawWindGust, 'urban') : rawWindGust;
+  
   // #region agent log
-  fetch('http://127.0.0.1:7246/ingest/c6551201-626b-4f04-992d-9b144886a04c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/weather/open-meteo.ts:147',message:'Wind speed values Open-Meteo',data:{rawSpeed:rawWindSpeed,rawGust:rawWindGust,adjustedSpeed:urbanAdjustmentEnabled ? adjustWindForUrban(rawWindSpeed, 'urban') : rawWindSpeed,adjustedGust:urbanAdjustmentEnabled ? adjustWindGustForUrban(rawWindGust, 'urban') : rawWindGust},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H6'})}).catch(()=>{});
+  console.log('[Open-Meteo] Wind values:', {
+    rawSpeed: rawWindSpeed.toFixed(1),
+    rawGust: rawWindGust.toFixed(1),
+    adjustedSpeed: adjustedSpeed.toFixed(1),
+    adjustedGust: adjustedGust.toFixed(1),
+    factor: '0.3 (urban)'
+  });
   // #endregion
   
   const current: WeatherData = {
@@ -161,8 +170,8 @@ export async function fetchOpenMeteoWeather(): Promise<{
     humidity: data.current.relative_humidity_2m,
     pressure: data.current.pressure_msl,
     visibility: 10000, // Open-Meteo doesn't provide visibility, use default
-    windSpeed: urbanAdjustmentEnabled ? adjustWindForUrban(rawWindSpeed, 'urban') : rawWindSpeed,
-    windGust: urbanAdjustmentEnabled ? adjustWindGustForUrban(rawWindGust, 'urban') : rawWindGust,
+    windSpeed: adjustedSpeed,
+    windGust: adjustedGust,
     windDirection: data.current.wind_direction_10m,
     description: getWeatherDescription(data.hourly.weather_code[0]),
     icon: getWeatherIcon(data.hourly.weather_code[0], isDay),
@@ -177,11 +186,14 @@ export async function fetchOpenMeteoWeather(): Promise<{
     const rawForecastSpeed = data.hourly.wind_speed_10m[i] * 3.6; // Convert m/s to km/h
     const rawForecastGust = data.hourly.wind_gusts_10m[i] * 3.6; // Convert m/s to km/h
     
+    const adjustedForecastSpeed = urbanAdjustmentEnabled ? adjustWindForUrban(rawForecastSpeed, 'urban') : rawForecastSpeed;
+    const adjustedForecastGust = urbanAdjustmentEnabled ? adjustWindGustForUrban(rawForecastGust, 'urban') : rawForecastGust;
+    
     forecast.push({
       time: data.hourly.time[i],
       temperature: data.hourly.temperature_2m[i],
-      windSpeed: urbanAdjustmentEnabled ? adjustWindForUrban(rawForecastSpeed, 'urban') : rawForecastSpeed,
-      windGust: urbanAdjustmentEnabled ? adjustWindGustForUrban(rawForecastGust, 'urban') : rawForecastGust,
+      windSpeed: adjustedForecastSpeed,
+      windGust: adjustedForecastGust,
       windDirection: data.hourly.wind_direction_10m[i],
       description: getWeatherDescription(data.hourly.weather_code[i]),
       icon: getWeatherIcon(data.hourly.weather_code[i], isForecastDay),
